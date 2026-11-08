@@ -43,3 +43,14 @@ Las migraciones se guardan en `drizzle/`. En desarrollo, aplicar las migraciones
 - https://developers.google.com/google-ads/api/docs/api-policy/developer-token
 - https://developers.google.com/identity/protocols/oauth2/web-server
 - https://developers.google.com/google-ads/api/docs/release-notes
+
+## Dashboard ampliado
+
+- Comparación de 7/30 días completos con el período inmediatamente anterior, usando la zona horaria de la cuenta; CPC y CTR calculados a partir de totales, sin promediar porcentajes.
+- Inversión del mes hasta ayer y proyección lineal con días completos. El presupuesto acordado se guarda por usuario/cuenta/mes en D1; nunca modifica Google Ads y no se arrastra automáticamente al mes siguiente.
+- Conversiones principales/secundarias y todas las conversiones por acción, con mensajes que distinguen configuración ausente, cero actividad y errores de consulta. No diagnostica etiquetas del sitio ni identifica contactos únicos.
+- Dispositivos, regiones de presencia, hasta 50 palabras clave y búsquedas por clics, y hasta 20 anuncios de búsqueda adaptables por conversiones/clics. Los informes parciales muestran sus límites y no se presentan como el total de la cuenta.
+- Registro manual de gestiones, próximos pasos y comentarios en D1, asociado al usuario autenticado y a su cuenta seleccionada.
+- Las consultas se conservan en caché privada por usuario/cuenta/período durante 5 minutos para limitar consumo de la API. Los fallos de desgloses no impiden consultar el reporte principal.
+
+Verificación de cálculos: `node --experimental-strip-types --test tests/reporting.test.mjs`.
