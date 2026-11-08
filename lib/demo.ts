@@ -1,0 +1,8 @@
+export type Campaign = { id:string; name:string; channel:string; status:string; cost:number; clicks:number; impressions:number; conversions:number };
+export type Report = { source:string; accountName:string; customerId:string; currency:string; timeZone:string; fetchedAt:string; days:number; campaigns:Campaign[]; daily:{date:string;cost:number;clicks:number;impressions:number;conversions:number}[] };
+export function demoReport(days:number):Report {
+ const daily=Array.from({length:days},(_,i)=>({date:new Date(Date.UTC(2026,10,8-days+i)).toISOString().slice(0,10),clicks:Math.round(63+i*2.4+Math.sin(i*1.9)*20),cost:Math.round(17500+i*550+Math.sin(i*1.9)*3200),conversions:Math.round(3+i/8+Math.sin(i)*2),impressions:Math.round(1650+i*60+Math.cos(i)*350)}));
+ const t=daily.reduce((a,d)=>({cost:a.cost+d.cost,clicks:a.clicks+d.clicks,impressions:a.impressions+d.impressions,conversions:a.conversions+d.conversions}),{cost:0,clicks:0,impressions:0,conversions:0});
+ const campaigns=[{id:'demo-1',name:'Búsqueda · Servicios principales',channel:'SEARCH',status:'ENABLED',share:.45},{id:'demo-2',name:'Performance Max · Captación',channel:'PERFORMANCE_MAX',status:'ENABLED',share:.32},{id:'demo-3',name:'Búsqueda · Marca',channel:'SEARCH',status:'ENABLED',share:.17},{id:'demo-4',name:'Display · Remarketing',channel:'DISPLAY',status:'PAUSED',share:.06}].map(c=>({...c,cost:Math.round(t.cost*c.share),clicks:Math.round(t.clicks*c.share),impressions:Math.round(t.impressions*c.share),conversions:Math.round(t.conversions*c.share)}));
+ return {source:'demo',accountName:'Cuenta de demostración',customerId:'0000000000',currency:'CLP',timeZone:'America/Santiago',fetchedAt:'',days,campaigns,daily};
+}
