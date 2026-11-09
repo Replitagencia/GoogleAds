@@ -1,0 +1,17 @@
+# Integrar como virtual host independiente. No reemplazar la configuración de Nexo.
+# Este bloque requiere un certificado ya emitido para ads.registroevento.cl.
+server {
+    listen 443 ssl;
+    server_name ads.registroevento.cl;
+    ssl_certificate /etc/letsencrypt/live/ads.registroevento.cl/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/ads.registroevento.cl/privkey.pem;
+    client_max_body_size 1m;
+    location / {
+        proxy_pass http://127.0.0.1:3400;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 120s;
+    }
+}

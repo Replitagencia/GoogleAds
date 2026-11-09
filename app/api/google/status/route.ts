@@ -1,9 +1,19 @@
-import { getChatGPTUser } from "@/app/chatgpt-auth";
+import { requireClient, apiError } from "@/lib/access";
 import { configuration, connection, json } from "@/lib/google-ads";
-export async function GET() {
-  const user = await getChatGPTUser();
-  if (!user) return json({ error: "Inicia sesión para conectar tu cuenta." }, 401);
-  const config = configuration();
-  const saved = config.ready ? await connection(user.userId) : null;
-  return json({ ...config, connected: !!saved, customerId: saved?.customerId, accountName: saved?.accountName, email: user.email });
+export async function GET(request: Request) {
+  try {
+    const { user, clientId } = await requireClient(request),
+      config = configuration(),
+      saved = await connection(clientId);
+    return json({
+      ready: user.isAdmin && config.ready,
+      connected: !!saved,
+      customerId: saved?.customerId,
+      accountName: saved?.accountName,
+      email: user.email,
+      ...(user.isAdmin ? { redirectUri: config.redirectUri } : {}),
+    });
+  } catch (e) {
+    return apiError(e);
+  }
 }

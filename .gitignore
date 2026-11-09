@@ -43,3 +43,7 @@ yarn-error.log*
 
 # OS metadata
 .DS_Store
+
+# Configuración de ejemplo y datos privados de instalación
+!.env.example
+/private/

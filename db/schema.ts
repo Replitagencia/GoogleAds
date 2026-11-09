@@ -1,40 +1,42 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { pgTable, text, bigint } from "drizzle-orm/pg-core";
 
-export const connections = sqliteTable("google_connections", {
-  userId: text("user_id").primaryKey(),
+const millis = (name: string) => bigint(name, { mode: "number" });
+export const connections = pgTable("google_connections", {
+  clientId: text("client_id").primaryKey(),
   refreshToken: text("refresh_token").notNull(),
   customerId: text("customer_id"),
   accountName: text("account_name"),
   currency: text("currency"),
   timeZone: text("time_zone"),
-  updatedAt: integer("updated_at").notNull(),
+  updatedAt: millis("updated_at").notNull(),
 });
 
-export const oauthStates = sqliteTable("oauth_states", {
+export const oauthStates = pgTable("oauth_states", {
   state: text("state").primaryKey(),
   userId: text("user_id").notNull(),
-  expiresAt: integer("expires_at").notNull(),
+  clientId: text("client_id").notNull(),
+  expiresAt: millis("expires_at").notNull(),
 });
 
-export const accountBudgets = sqliteTable("account_budgets", {
+export const accountBudgets = pgTable("account_budgets", {
   id: text("id").primaryKey(),
-  userId: text("user_id").notNull(),
+  clientId: text("client_id").notNull(),
   customerId: text("customer_id").notNull(),
   month: text("month").notNull(),
-  amount: integer("amount").notNull(),
-  updatedAt: integer("updated_at").notNull(),
+  amount: millis("amount").notNull(),
+  updatedAt: millis("updated_at").notNull(),
 });
-export const agencyActivities = sqliteTable("agency_activities", {
+export const agencyActivities = pgTable("agency_activities", {
   id: text("id").primaryKey(),
-  userId: text("user_id").notNull(),
+  clientId: text("client_id").notNull(),
   customerId: text("customer_id").notNull(),
   kind: text("kind").notNull(),
   title: text("title").notNull(),
   body: text("body").notNull(),
-  createdAt: integer("created_at").notNull(),
+  createdAt: millis("created_at").notNull(),
 });
-export const reportCache = sqliteTable("report_cache", {
+export const reportCache = pgTable("report_cache", {
   id: text("id").primaryKey(),
   payload: text("payload").notNull(),
-  expiresAt: integer("expires_at").notNull(),
+  expiresAt: millis("expires_at").notNull(),
 });

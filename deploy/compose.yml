@@ -1,0 +1,48 @@
+name: agencialabs
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: agencialabs
+      POSTGRES_USER: agencialabs
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configura POSTGRES_PASSWORD}
+    volumes:
+      - agencialabs_db:/var/lib/postgresql/data
+    mem_limit: 192m
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U agencialabs -d agencialabs']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  app:
+    image: ${AGENCIALABS_IMAGE:-agencialabs:latest}
+    restart: unless-stopped
+    env_file: ${AGENCIALABS_ENV_FILE:-../.env.production}
+    environment:
+      DATABASE_URL: postgresql://agencialabs:${POSTGRES_PASSWORD}@db:5432/agencialabs
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+    ports: ['127.0.0.1:3400:3000']
+    depends_on:
+      db:
+        condition: service_healthy
+    mem_limit: 320m
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  migrate:
+    image: ${AGENCIALABS_TOOLS_IMAGE:-agencialabs-tools:latest}
+    profiles: [tools]
+    env_file: ${AGENCIALABS_ENV_FILE:-../.env.production}
+    environment:
+      DATABASE_URL: postgresql://agencialabs:${POSTGRES_PASSWORD}@db:5432/agencialabs
+    volumes:
+      - ../private:/app/private
+    depends_on:
+      db:
+        condition: service_healthy
+volumes:
+  agencialabs_db:

@@ -1,56 +1,60 @@
-# AgenciaLabs · Portal de Google Ads
+# AgenciaLabs · SaaS de Google Ads
 
-Prueba privada para consultar una cuenta de Google Ads directamente. React 19, Vinext, Cloudflare Workers y D1.
+Portal independiente de ChatGPT, con Next.js 16, Better Auth y PostgreSQL. El administrador crea espacios de clientes, conecta Google Ads e invita a usuarios. Cada cliente consulta únicamente sus empresas asignadas. El dominio previsto es `ads.registroevento.cl`.
 
-## Incluido
+## Funciones
 
-- Resumen, campañas, detalles, filtros de 7/30 días y exportación CSV.
-- Demostración identificada mientras no exista una conexión real.
-- OAuth de Google con estado de un solo uso, vinculado al usuario y con vencimiento.
-- Tokens de renovación cifrados con AES-GCM en D1; secretos únicamente en el servidor.
-- Consultas de Google Ads API v26, validación de cuenta directa y actualización cada 5 minutos con la página abierta.
-- Datos segregados por la identidad autenticada en Sites. El sitio permanece privado.
-
-## Pendiente para la prueba real
-
-1. Crear proyecto de Google Cloud y habilitar Google Ads API con el acceso aplicable.
-2. Configurar consentimiento OAuth y usuario de prueba; crear cliente web.
-3. Registrar `https://portal-campanas-dante.dsalascl.chatgpt.site/api/google/callback` como URI autorizada.
-4. Configurar secretos `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TOKEN_ENCRYPTION_KEY` (32 bytes aleatorios en base64) y `SITE_URL` en Sites. Si el modelo de acceso de Google lo exige, añadir `GOOGLE_ADS_DEVELOPER_TOKEN`.
-5. Publicar para aplicar la configuración, autorizar Google y validar el ID de la cuenta directa.
-
-No guardar secretos ni datos de clientes en GitHub. La integración aún necesita validación con una cuenta real. La consulta utiliza el ámbito OAuth de Google Ads; la aplicación solo implementa lecturas, aunque el permiso de Google es más amplio. El consentimiento de prueba puede requerir volver a autorizar periódicamente según las reglas de Google.
-
-## Siguiente etapa
-
-El acceso independiente de clientes mediante correo y contraseña, administración de clientes, asignación de cuentas y recuperación de contraseñas todavía no están implementados. Esta prueba usa la autenticación privada de Sites. No publicar para clientes hasta implementar y validar esas funciones.
+- Ingreso con correo y contraseña, sesiones revocables y recuperación por correo SMTP.
+- Registro público deshabilitado. Invitaciones de un solo uso, almacenadas como hash, con vencimiento de 48 horas; el cliente define su contraseña.
+- Administrador inicial creado mediante una invitación privada desde la consola del servidor. No existe un usuario o contraseña predeterminados.
+- Panel de clientes, invitaciones, suspensión/reactivación de empresas y usuarios.
+- Permisos verificados en el servidor en cada API y página. El rol administrativo se guarda aparte de los campos editables de Better Auth. Los encabezados de ChatGPT no otorgan acceso.
+- Conexiones OAuth de Google por cliente, con estado de un solo uso vinculado al administrador y al cliente. Tokens cifrados con AES-GCM.
+- Dashboard, comparaciones, campañas, conversiones, dispositivos, ubicaciones, palabras clave, búsquedas, anuncios y CSV.
+- Presupuesto y gestiones editables solo por la agencia. Los clientes tienen acceso de lectura.
+- Los clientes sin cuenta conectada ven un estado pendiente, nunca métricas inventadas.
+- No incluye facturación automática ni suscripciones de pago.
 
 ## Desarrollo
 
+Requisitos: Node.js 22 y PostgreSQL 16.
+
 ```sh
-npm run install:ci
-npm run dev
-npx tsc --noEmit
-npm run db:generate # solo al cambiar esquema
-npm run build
+npm ci
+cp .env.example .env.local
+# Configurar DATABASE_URL, SITE_URL=http://127.0.0.1:3400 y claves aleatorias.
+node --env-file=.env.local --import tsx scripts/migrate.ts
+node --env-file=.env.local --import tsx scripts/bootstrap-admin.ts tu-correo@ejemplo.cl /ruta/privada/invitacion.txt
+npm run dev -- --port 3400
 ```
 
-Las migraciones se guardan en `drizzle/`. En desarrollo, aplicar las migraciones pendientes al D1 local antes de probar una conexión. Las credenciales de Google se configuran en `.dev.vars` local, ignorado por Git. En producción se configuran mediante variables de entorno de Sites, nunca en el manifiesto.
+Abrir personalmente el enlace privado para definir la contraseña del administrador. No subir ese archivo al repositorio. Al crear una invitación desde el panel, compartir el enlace con el destinatario; la aplicación informa expresamente que no se envió correo. La recuperación sí requiere configurar SMTP y un remitente autorizado.
 
-## Documentación
+```sh
+npm run typecheck
+npm run build
+node --import tsx --test tests/reporting.test.mjs
+```
 
-- https://developers.google.com/google-ads/api/docs/get-started/make-first-call
-- https://developers.google.com/google-ads/api/docs/api-policy/developer-token
-- https://developers.google.com/identity/protocols/oauth2/web-server
-- https://developers.google.com/google-ads/api/docs/release-notes
+La prueba integral **vacía la base de prueba** y solo admite una URL local y una base cuyo nombre contiene `agencialabs_test`. Requiere la aplicación en `http://127.0.0.1:3400`, `SMTP_HOST=127.0.0.1`, `SMTP_PORT=1026` y `MAIL_FROM=qa@example.test`. El servidor SMTP local de la prueba captura el correo, sin enviarlo a Internet.
 
-## Dashboard ampliado
+```sh
+node --env-file=.env.local --import tsx --test tests/access.integration.test.ts tests/reporting.test.mjs
+```
 
-- Comparación de 7/30 días completos con el período inmediatamente anterior, usando la zona horaria de la cuenta; CPC y CTR calculados a partir de totales, sin promediar porcentajes.
-- Inversión del mes hasta ayer y proyección lineal con días completos. El presupuesto acordado se guarda por usuario/cuenta/mes en D1; nunca modifica Google Ads y no se arrastra automáticamente al mes siguiente.
-- Conversiones principales/secundarias y todas las conversiones por acción, con mensajes que distinguen configuración ausente, cero actividad y errores de consulta. No diagnostica etiquetas del sitio ni identifica contactos únicos.
-- Dispositivos, regiones de presencia, hasta 50 palabras clave y búsquedas por clics, y hasta 20 anuncios de búsqueda adaptables por conversiones/clics. Los informes parciales muestran sus límites y no se presentan como el total de la cuenta.
-- Registro manual de gestiones, próximos pasos y comentarios en D1, asociado al usuario autenticado y a su cuenta seleccionada.
-- Las consultas se conservan en caché privada por usuario/cuenta/período durante 5 minutos para limitar consumo de la API. Los fallos de desgloses no impiden consultar el reporte principal.
+## Publicación y transición
 
-Verificación de cálculos: `node --experimental-strip-types --test tests/reporting.test.mjs`.
+Ver [deploy/README.md](deploy/README.md). Esta rama sustituye el alojamiento de Sites por un servidor Node.js. No debe publicarse con el proyecto antiguo de Sites; su manifiesto y autenticación se retiraron de esta rama.
+
+La conexión de Eticsa que existe en la publicación anterior no se ha copiado: está cifrada en otra base de datos. En el servidor nuevo se debe volver a autorizar Google como administrador y validar su ID de cliente de Google Ads. El URI `https://ads.registroevento.cl/api/google/callback` ya está registrado en Google Cloud. Configurar el mismo cliente OAuth en el nuevo servidor mediante secretos; no copiar archivos JSON a GitHub.
+
+La prueba de Google sigue siendo independiente de la autenticación SaaS. Si el consentimiento OAuth continúa en modo de prueba, revisar sus límites antes de incorporar más cuentas reales. El alcance concedido por Google es amplio; esta aplicación solo implementa consultas de campañas.
+
+## Configuración de seguridad
+
+- `SITE_URL` es el origen exacto de producción, sin barra final; todas las escrituras propias verifican Origin.
+- El proxy debe **reemplazar** `X-Real-IP`. La aplicación y PostgreSQL no se exponen directamente a Internet.
+- `BETTER_AUTH_SECRET` y `TOKEN_ENCRYPTION_KEY` son distintos. Conservar la clave de cifrado de Google; cambiarla sin migración hace ilegibles los tokens almacenados.
+- Todas las cookies de producción se emiten con HTTPS; la librería gestiona las sesiones y la limitación de intentos en PostgreSQL.
+- Configurar copias de seguridad y verificar una restauración antes de entregar accesos de producción.
+- La base local contiene datos ficticios. No migrar esos usuarios, tokens ni reportes a producción.

@@ -1,0 +1,6 @@
+# Agregar al Caddyfile existente solo si Caddy es el proxy instalado.
+ads.registroevento.cl {
+    reverse_proxy 127.0.0.1:3400 {
+        header_up X-Real-IP {remote_host}
+    }
+}
