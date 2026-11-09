@@ -50,7 +50,7 @@ El destinatario del enlace inicial debe ser confirmado antes de emitirlo. El enl
 
 Integrar `ads.registroevento.cl` como virtual host **adicional** en el proxy que ya use Nexo. Las configuraciones de Nginx y Caddy incluidas son alternativas de referencia, no instrucciones para instalar ambos. En Nginx, emitir primero un certificado válido con el mecanismo existente; validar configuración antes de recargar.
 
-Reemplazar el CNAME `ads → custom-domains.chatgpt.site` por A `ads → IP_DEL_SERVIDOR` solo cuando el backend y el proxy estén verificados. No cambiar los registros de Nexo ni el dominio principal. Mantener la publicación anterior para poder revertir DNS.
+Actualizar el CNAME `ads → custom-domains.chatgpt.site` a `ads → nexo.registroevento.cl` solo cuando el backend y el proxy estén verificados. Nexo resuelve a la IP del servidor; Caddy distingue ambos sitios por su hostname. No cambiar los registros de Nexo ni el dominio principal. Mantener la publicación anterior para poder revertir DNS.
 
 Después del cambio:
 

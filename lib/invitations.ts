@@ -1,7 +1,8 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { hashPassword } from "better-auth/crypto";
 import { getPool } from "../db";
-import { AccessError, type PortalUser } from "./access";
+import type { PortalUser } from "./access";
+import { AccessError } from "./errors";
 export const tokenHash = (token: string) =>
   createHash("sha256").update(token).digest("hex");
 export async function createInvitation(

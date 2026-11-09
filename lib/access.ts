@@ -1,20 +1,14 @@
 import { headers } from "next/headers";
 import { getAuth } from "./auth";
 import { getPool } from "../db";
+import { AccessError } from "./errors";
+export { AccessError } from "./errors";
 export type PortalUser = {
   userId: string;
   email: string;
   name: string;
   isAdmin: boolean;
 };
-export class AccessError extends Error {
-  constructor(
-    message: string,
-    public status: number,
-  ) {
-    super(message);
-  }
-}
 export async function getPortalUser(
   input?: Headers,
 ): Promise<PortalUser | null> {

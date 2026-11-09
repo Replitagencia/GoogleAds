@@ -58,6 +58,7 @@ jobs:
           cp tsconfig.json deploy/tools/package*.json work/release/tools/
           npm ci --prefix work/release/tools --no-audit --no-fund
           (cd work/release/tools && node --import tsx scripts/migrate.ts)
+          (cd work/release/tools && node --import tsx -e "import('./lib/invitations.ts')")
           tar -czf work/agencialabs-linux-amd64.tar.gz -C work/release .
           sha256sum work/agencialabs-linux-amd64.tar.gz > work/agencialabs-linux-amd64.sha256
       - uses: actions/upload-artifact@v4
