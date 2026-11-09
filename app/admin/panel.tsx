@@ -221,6 +221,9 @@ export default function AdminPanel({ email }: { email: string }) {
           Este panel es de la agencia. Cada cliente entra directamente a sus
           campañas.
         </p>
+        <a className="button primary" href="/admin/tickets">
+          Solicitudes de clientes →
+        </a>
       </div>
       {error && (
         <div className="message error" role="alert">

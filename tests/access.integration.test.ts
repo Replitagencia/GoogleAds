@@ -557,6 +557,149 @@ test("la ficha y notas internas solo están disponibles para la agencia", async 
   assert.ok(!JSON.stringify(report.data).includes(profile.internalNotes));
 });
 
+test("solicitudes: cliente crea y conversa; agencia asigna y gestiona; otros clientes no acceden", async () => {
+  const body = {
+    action: "create",
+    clientId: clientA,
+    subject: "Actualizar promoción",
+    message: "Por favor revisar el anuncio.",
+  };
+  assert.equal((await request("/api/tickets", "POST", body)).status, 401);
+  assert.equal(
+    (
+      await request(
+        "/api/tickets",
+        "POST",
+        body,
+        cookieA,
+        "http://origen-invalido.test",
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await request(
+        "/api/tickets",
+        "POST",
+        { ...body, clientId: clientB },
+        cookieA,
+      )
+    ).status,
+    404,
+  );
+  const created = await request("/api/tickets", "POST", body, cookieA);
+  assert.equal(created.status, 200);
+  const ticketId = created.data.id;
+  assert.equal(
+    (
+      await request(
+        `/api/tickets?ticketId=${ticketId}`,
+        "GET",
+        undefined,
+        cookieB,
+      )
+    ).status,
+    404,
+  );
+  assert.equal(
+    (
+      await request(
+        "/api/tickets",
+        "POST",
+        { action: "reply", ticketId, message: "Intruso" },
+        cookieB,
+      )
+    ).status,
+    404,
+  );
+  assert.equal(
+    (
+      await request(
+        "/api/tickets",
+        "POST",
+        { action: "status", ticketId, status: "resolved" },
+        cookieA,
+      )
+    ).status,
+    403,
+  );
+  const inbox = await request("/api/tickets", "GET", undefined, adminCookie);
+  assert.ok(
+    inbox.data.tickets.some(
+      (t: any) => t.id === ticketId && t.client_id === clientA,
+    ),
+  );
+  const adminId = (
+    await getPool().query('SELECT id FROM "user" WHERE email=$1', [adminEmail])
+  ).rows[0].id;
+  assert.equal(
+    (
+      await request(
+        "/api/tickets",
+        "POST",
+        { action: "assign", ticketId, userId: adminId },
+        adminCookie,
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await request(
+        "/api/tickets",
+        "POST",
+        { action: "status", ticketId, status: "waiting_client" },
+        adminCookie,
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await request(
+        "/api/tickets",
+        "POST",
+        { action: "reply", ticketId, message: "Necesitamos los materiales." },
+        adminCookie,
+      )
+    ).status,
+    200,
+  );
+  const thread = await request(
+    `/api/tickets?ticketId=${ticketId}`,
+    "GET",
+    undefined,
+    cookieA,
+  );
+  assert.deepEqual(
+    thread.data.messages.map((m: any) => m.body),
+    [body.message, "Necesitamos los materiales."],
+  );
+  assert.equal(
+    (
+      await request(
+        "/api/tickets",
+        "POST",
+        { action: "status", ticketId, status: "closed" },
+        adminCookie,
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await request(
+        "/api/tickets",
+        "POST",
+        { action: "reply", ticketId, message: "Ya no debe entrar." },
+        cookieA,
+      )
+    ).status,
+    409,
+  );
+});
+
 test("la vista previa muestra el portal del cliente sin ampliar sus permisos", async () => {
   const page = async (id: string, cookie: string) => {
     const r = await fetch(`${base}/?clientId=${id}&preview=client`, {

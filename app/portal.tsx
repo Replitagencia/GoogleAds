@@ -18,6 +18,7 @@ import {
   LoaderCircle,
   LockKeyhole,
   Megaphone,
+  MessageSquare,
   Menu,
   MousePointer2,
   RefreshCw,
@@ -356,6 +357,12 @@ export default function Portal({
             <ArrowDownToLine size={18} />
             Descargar reporte
           </button>
+          <a
+            className="ticket-nav-link"
+            href={"/tickets?clientId=" + encodeURIComponent(clientId)}
+          >
+            <MessageSquare size={18} /> Solicitudes
+          </a>
         </nav>
         {isAdmin && (
           <>

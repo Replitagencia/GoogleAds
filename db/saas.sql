@@ -62,3 +62,16 @@ CREATE TABLE IF NOT EXISTS client_profiles (
  contact_phone text NOT NULL DEFAULT '', responsible text NOT NULL DEFAULT '',
  internal_notes text NOT NULL DEFAULT '', updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS tickets (
+ id text PRIMARY KEY, client_id text NOT NULL REFERENCES clients(id),
+ subject text NOT NULL, status text NOT NULL DEFAULT 'new' CHECK(status IN ('new','in_progress','waiting_client','resolved','closed')),
+ created_by text NOT NULL REFERENCES "user"(id), assigned_to text REFERENCES "user"(id),
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS ticket_messages (
+ id text PRIMARY KEY, ticket_id text NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+ author_id text NOT NULL REFERENCES "user"(id), body text NOT NULL, created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS tickets_client_updated ON tickets(client_id,updated_at DESC);
+CREATE INDEX IF NOT EXISTS ticket_messages_ticket_created ON ticket_messages(ticket_id,created_at);

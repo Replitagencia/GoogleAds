@@ -2235,3 +2235,35 @@ footer {
 .admin-alerts a { color:#405ed4; }
 .client-checklist form { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
 .client-checklist form input { flex:1; min-width:180px; border:1px solid #dce3ee; border-radius:8px; padding:10px; }
+.ticket-nav-link { display:flex; align-items:center; gap:12px; width:100%; padding:12px 15px; border-radius:8px; color:#66728d; font-size:14px; font-weight:600; text-decoration:none; }
+.ticket-nav-link:hover { background:#eef2ff; color:#405ed4; }
+.tickets-page { max-width:1200px; margin:auto; padding:30px 24px 60px; color:#202e4a; }
+.tickets-page > h1 { font-size:32px; margin:22px 0 8px; }
+.tickets-page > p { color:#718096; margin-bottom:24px; }
+.tickets-header { display:flex; justify-content:space-between; gap:12px; align-items:center; color:#718096; font-size:14px; }
+.tickets-header a { color:#405ed4; text-decoration:none; }
+.ticket-layout { display:grid; grid-template-columns:minmax(260px,360px) minmax(0,1fr); gap:20px; align-items:start; }
+.ticket-sidebar,.ticket-detail { padding:22px; min-width:0; }
+.ticket-heading { display:flex; align-items:start; justify-content:space-between; gap:12px; }
+.ticket-heading h2 { margin:5px 0; font-size:19px; }
+.ticket-heading p { color:#718096; font-size:13px; margin:5px 0 12px; }
+.ticket-empty { color:#718096; font-size:14px; padding:15px 0; }
+.ticket-list { display:grid; gap:6px; max-height:400px; overflow:auto; }
+.ticket-row { text-align:left; border:1px solid #e5eaf2; border-radius:9px; background:white; padding:12px; display:grid; gap:5px; color:#293754; cursor:pointer; }
+.ticket-row.active { background:#edf2ff; border-color:#97a9eb; }
+.ticket-row span,.ticket-row small { color:#718096; font-size:12px; }
+.ticket-new,.ticket-reply { border-top:1px solid #e5eaf2; margin-top:20px; padding-top:18px; display:grid; gap:12px; }
+.ticket-new h3 { font-size:16px; margin:0; }
+.ticket-new label,.ticket-reply label,.ticket-controls label { display:grid; gap:6px; color:#53627c; font-size:13px; font-weight:600; }
+.ticket-new input,.ticket-new textarea,.ticket-reply textarea,.ticket-controls select { width:100%; padding:10px; border:1px solid #dce3ee; border-radius:8px; font:inherit; color:#293754; background:white; }
+.ticket-new textarea,.ticket-reply textarea { min-height:95px; resize:vertical; }
+.ticket-controls { display:flex; gap:12px; flex-wrap:wrap; padding:14px 0; border-bottom:1px solid #e5eaf2; }
+.ticket-controls label { min-width:180px; flex:1; }
+.ticket-conversation { display:grid; gap:12px; padding:18px 0; }
+.ticket-conversation article { background:#f6f8fc; border-radius:10px; padding:14px; }
+.ticket-conversation article div { display:flex; gap:10px; justify-content:space-between; align-items:baseline; }
+.ticket-conversation small,.ticket-detail > small { color:#718096; font-size:12px; }
+.ticket-conversation p { white-space:pre-wrap; overflow-wrap:anywhere; margin:8px 0 0; line-height:1.5; font-size:14px; }
+.ticket-placeholder { padding:50px 10px; color:#718096; text-align:center; }
+.ticket-placeholder h2 { color:#293754; font-size:20px; }
+@media(max-width:700px) { .tickets-page { padding:20px 16px 48px; } .tickets-header { align-items:start; flex-direction:column; } .ticket-layout { grid-template-columns:1fr; } .ticket-sidebar,.ticket-detail { padding:18px; } }

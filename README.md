@@ -12,6 +12,7 @@ Portal independiente de ChatGPT, con Next.js 16, Better Auth y PostgreSQL. La ag
 - Permisos verificados en el servidor en cada API y página. El rol administrativo se guarda aparte de los campos editables de Better Auth. Los encabezados de ChatGPT no otorgan acceso.
 - Conexiones OAuth de Google por cliente, con estado de un solo uso vinculado al administrador y al cliente. Tokens cifrados con AES-GCM.
 - Dashboard, comparaciones, campañas, conversiones, dispositivos, ubicaciones, palabras clave, búsquedas, anuncios y CSV.
+- Solicitudes en prueba: cada cliente crea solicitudes y conversa con la agencia dentro del portal. La agencia puede asignar un responsable y cambiar el estado; aún no se envían avisos ni se conectan correos o WhatsApp.
 - Presupuesto y gestiones editables solo por la agencia. Los clientes tienen acceso de lectura.
 - Los clientes sin cuenta conectada ven un estado pendiente, nunca métricas inventadas.
 - No incluye facturación automática ni suscripciones de pago.
