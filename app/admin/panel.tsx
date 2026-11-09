@@ -23,11 +23,105 @@ type Data = {
     client_id: string;
     expires_at: string;
   }[];
+  checklist: {
+    client_id: string;
+    item_key: string;
+    title: string;
+    position: number;
+    completed: boolean;
+  }[];
+  profiles: {
+    client_id: string;
+    contact_name: string;
+    contact_email: string;
+    contact_phone: string;
+    responsible: string;
+    internal_notes: string;
+  }[];
 };
+function ClientProfile({
+  id,
+  profile,
+  busy,
+  save,
+}: {
+  id: string;
+  profile: Data["profiles"][number] | undefined;
+  busy: boolean;
+  save: (body: Record<string, unknown>) => void;
+}) {
+  return (
+    <details className="client-profile">
+      <summary>Ficha y notas internas</summary>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const form = new FormData(e.currentTarget);
+          save({
+            action: "save-profile",
+            clientId: id,
+            contactName: form.get("contactName"),
+            contactEmail: form.get("contactEmail"),
+            contactPhone: form.get("contactPhone"),
+            responsible: form.get("responsible"),
+            internalNotes: form.get("internalNotes"),
+          });
+        }}
+      >
+        <label>
+          Contacto
+          <input
+            name="contactName"
+            maxLength={254}
+            defaultValue={profile?.contact_name || ""}
+          />
+        </label>
+        <label>
+          Correo de contacto
+          <input
+            type="email"
+            name="contactEmail"
+            maxLength={254}
+            defaultValue={profile?.contact_email || ""}
+          />
+        </label>
+        <label>
+          Teléfono
+          <input
+            name="contactPhone"
+            maxLength={254}
+            defaultValue={profile?.contact_phone || ""}
+          />
+        </label>
+        <label>
+          Responsable de la agencia
+          <input
+            name="responsible"
+            maxLength={254}
+            defaultValue={profile?.responsible || ""}
+          />
+        </label>
+        <label>
+          Notas internas
+          <textarea
+            name="internalNotes"
+            maxLength={4000}
+            defaultValue={profile?.internal_notes || ""}
+          />
+        </label>
+        <button className="button primary" disabled={busy}>
+          Guardar ficha
+        </button>
+      </form>
+    </details>
+  );
+}
 export default function AdminPanel({ email }: { email: string }) {
   const [data, setData] = useState<Data | null>(null),
     [name, setName] = useState(""),
     [newEmail, setNewEmail] = useState(""),
+    [search, setSearch] = useState(""),
+    [filter, setFilter] = useState("all"),
     [inviteEmail, setInviteEmail] = useState(""),
     [client, setClient] = useState(""),
     [busy, setBusy] = useState(false),
@@ -91,10 +185,12 @@ export default function AdminPanel({ email }: { email: string }) {
         setClient(d.id);
       }
       await load();
+      return true;
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "No se pudo completar la acción.",
       );
+      return false;
     } finally {
       setBusy(false);
     }
@@ -130,6 +226,95 @@ export default function AdminPanel({ email }: { email: string }) {
           {error}
         </div>
       )}
+      {data && (
+        <div className="admin-summary">
+          <div>
+            <strong>
+              {data.clients.filter((c) => c.status === "active").length}
+            </strong>
+            <span>Clientes activos</span>
+          </div>
+          <div>
+            <strong>
+              {
+                data.clients.filter(
+                  (c) => c.status === "active" && c.customer_id,
+                ).length
+              }
+            </strong>
+            <span>Cuentas conectadas</span>
+          </div>
+          <div>
+            <strong>{data.invitations.length}</strong>
+            <span>Accesos pendientes</span>
+          </div>
+          <div>
+            <strong>
+              {
+                data.clients.filter(
+                  (c) =>
+                    c.status === "active" &&
+                    (!c.customer_id ||
+                      data.invitations.some((i) => i.client_id === c.id) ||
+                      data.checklist.some(
+                        (t) => t.client_id === c.id && !t.completed,
+                      )),
+                ).length
+              }
+            </strong>
+            <span>Clientes por atender</span>
+          </div>
+        </div>
+      )}
+      {data && (
+        <section
+          className="panel admin-alerts"
+          aria-label="Atención prioritaria"
+        >
+          <h2>Atención prioritaria</h2>
+          {data.clients
+            .filter((c) => c.status === "active" && !c.customer_id)
+            .map((c) => (
+              <p key={"connection-" + c.id}>
+                <strong>{c.name}:</strong> Google Ads pendiente de conexión.{" "}
+                <a href={"/?clientId=" + c.id + "&view=connection"}>
+                  Configurar cuenta →
+                </a>
+              </p>
+            ))}
+          {data.invitations.map((i) => (
+            <p key={i.id}>
+              <strong>
+                {data.clients.find((c) => c.id === i.client_id)?.name}:
+              </strong>{" "}
+              acceso pendiente para {i.email}.{" "}
+              <a href="#pending-access">Ver acceso →</a>
+            </p>
+          ))}
+          {!data.clients.some((c) => c.status === "active" && !c.customer_id) &&
+            !data.invitations.length && (
+              <p>No hay conexiones ni activaciones pendientes.</p>
+            )}
+        </section>
+      )}
+      <div className="admin-filters">
+        <input
+          aria-label="Buscar clientes"
+          placeholder="Buscar cliente"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <select
+          aria-label="Filtrar clientes"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+        >
+          <option value="all">Todos los clientes</option>
+          <option value="pending">Conexión pendiente</option>
+          <option value="connected">Conectados</option>
+          <option value="suspended">Suspendidos</option>
+        </select>
+      </div>
       <div className="admin-grid">
         <section>
           <div className="admin-clients">
@@ -145,82 +330,176 @@ export default function AdminPanel({ email }: { email: string }) {
                 </p>
               </div>
             ) : (
-              data.clients.map((c) => (
-                <article className="panel client-card" key={c.id}>
-                  <div>
-                    <span
-                      className={`status-pill ${c.status === "active" ? "enabled" : "paused"}`}
-                    >
-                      {c.status === "active" ? "Activo" : "Suspendido"}
-                    </span>
-                    <h2>{c.name}</h2>
-                    <p>
-                      {c.customer_id
-                        ? `Google Ads · ${c.customer_id} · ${c.account_name}`
-                        : "Google Ads pendiente de conexión"}
-                    </p>
-                    <p>
-                      Usuarios:{" "}
-                      {
-                        data.users.filter((u) => u.clients.includes(c.id))
-                          .length
-                      }
-                      {" · "}Activaciones pendientes:{" "}
-                      {
-                        data.invitations.filter((i) => i.client_id === c.id)
-                          .length
-                      }
-                    </p>
-                  </div>
-                  <div className="client-actions">
-                    {c.status === "active" && (
-                      <>
+              data.clients
+                .filter(
+                  (c) =>
+                    c.name
+                      .toLowerCase()
+                      .includes(search.trim().toLowerCase()) &&
+                    (filter === "all" ||
+                      (filter === "pending" &&
+                        c.status === "active" &&
+                        !c.customer_id) ||
+                      (filter === "connected" &&
+                        c.status === "active" &&
+                        !!c.customer_id) ||
+                      (filter === "suspended" && c.status === "suspended")),
+                )
+                .map((c) => (
+                  <article className="panel client-card" key={c.id}>
+                    <div>
+                      <span
+                        className={`status-pill ${c.status === "active" ? "enabled" : "paused"}`}
+                      >
+                        {c.status === "active" ? "Activo" : "Suspendido"}
+                      </span>
+                      <h2>{c.name}</h2>
+                      <p>
+                        {c.customer_id
+                          ? `Google Ads · ${c.customer_id} · ${c.account_name}`
+                          : "Google Ads pendiente de conexión"}
+                      </p>
+                      <p>
+                        Responsable:{" "}
+                        {data.profiles.find((p) => p.client_id === c.id)
+                          ?.responsible || "Sin asignar"}
+                      </p>
+                      <p>
+                        Usuarios:{" "}
+                        {
+                          data.users.filter((u) => u.clients.includes(c.id))
+                            .length
+                        }
+                        {" · "}Activaciones pendientes:{" "}
+                        {
+                          data.invitations.filter((i) => i.client_id === c.id)
+                            .length
+                        }
+                      </p>
+                    </div>
+                    <div className="client-actions">
+                      {c.status === "active" && (
+                        <>
+                          <button
+                            type="button"
+                            className="text-button"
+                            disabled={busy}
+                            onClick={() => {
+                              setClient(c.id);
+                              setInviteEmail("");
+                              setLink("");
+                              setError("");
+                              inviteEmailInput.current?.focus();
+                            }}
+                          >
+                            Crear acceso de cliente
+                          </button>
+                          <a
+                            className="button primary"
+                            href={"/?clientId=" + c.id + "&preview=client"}
+                          >
+                            Ver como cliente
+                            <ArrowRight size={15} />
+                          </a>
+                          <a
+                            className="text-button"
+                            href={"/?clientId=" + c.id + "&view=connection"}
+                          >
+                            Configurar Google Ads
+                          </a>
+                        </>
+                      )}
+                      <button
+                        className="text-button"
+                        disabled={busy}
+                        onClick={() =>
+                          action({
+                            action: "client-status",
+                            clientId: c.id,
+                            status:
+                              c.status === "active" ? "suspended" : "active",
+                          })
+                        }
+                      >
+                        {c.status === "active"
+                          ? "Suspender acceso"
+                          : "Reactivar"}
+                      </button>
+                    </div>
+                    <details className="client-checklist">
+                      <summary>
+                        Checklist de inicio ·{" "}
+                        {
+                          data.checklist.filter(
+                            (t) => t.client_id === c.id && t.completed,
+                          ).length
+                        }
+                        /
+                        {
+                          data.checklist.filter((t) => t.client_id === c.id)
+                            .length
+                        }{" "}
+                        completadas
+                      </summary>
+                      {data.checklist
+                        .filter((t) => t.client_id === c.id)
+                        .map((t) => (
+                          <label key={t.item_key}>
+                            <input
+                              type="checkbox"
+                              checked={t.completed}
+                              disabled={busy}
+                              onChange={(e) =>
+                                void action({
+                                  action: "checklist-status",
+                                  clientId: c.id,
+                                  itemKey: t.item_key,
+                                  completed: e.target.checked,
+                                })
+                              }
+                            />{" "}
+                            {t.title}
+                          </label>
+                        ))}
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          const input = e.currentTarget.elements.namedItem(
+                            "task",
+                          ) as HTMLInputElement;
+                          void action({
+                            action: "checklist-add",
+                            clientId: c.id,
+                            title: input.value,
+                          }).then((saved) => {
+                            if (saved) input.value = "";
+                          });
+                        }}
+                      >
+                        <input
+                          name="task"
+                          required
+                          maxLength={200}
+                          aria-label={`Nueva tarea para ${c.name}`}
+                          placeholder="Agregar tarea al checklist"
+                        />
                         <button
-                          type="button"
+                          type="submit"
                           className="text-button"
                           disabled={busy}
-                          onClick={() => {
-                            setClient(c.id);
-                            setInviteEmail("");
-                            setLink("");
-                            setError("");
-                            inviteEmailInput.current?.focus();
-                          }}
                         >
-                          Crear acceso de cliente
+                          Agregar tarea
                         </button>
-                        <a
-                          className="button primary"
-                          href={"/?clientId=" + c.id + "&preview=client"}
-                        >
-                          Ver como cliente
-                          <ArrowRight size={15} />
-                        </a>
-                        <a
-                          className="text-button"
-                          href={"/?clientId=" + c.id + "&view=connection"}
-                        >
-                          Configurar Google Ads
-                        </a>
-                      </>
-                    )}
-                    <button
-                      className="text-button"
-                      disabled={busy}
-                      onClick={() =>
-                        action({
-                          action: "client-status",
-                          clientId: c.id,
-                          status:
-                            c.status === "active" ? "suspended" : "active",
-                        })
-                      }
-                    >
-                      {c.status === "active" ? "Suspender acceso" : "Reactivar"}
-                    </button>
-                  </div>
-                </article>
-              ))
+                      </form>
+                    </details>
+                    <ClientProfile
+                      id={c.id}
+                      profile={data.profiles.find((p) => p.client_id === c.id)}
+                      busy={busy}
+                      save={action}
+                    />
+                  </article>
+                ))
             )}
           </div>
         </section>
@@ -417,7 +696,7 @@ export default function AdminPanel({ email }: { email: string }) {
         </div>
       </section>
       {!!data?.invitations.length && (
-        <section className="panel admin-section">
+        <section className="panel admin-section" id="pending-access">
           <div className="panel-heading">
             <h2>Accesos pendientes de activación</h2>
           </div>

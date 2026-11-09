@@ -2209,3 +2209,29 @@ footer {
     margin: 8vh 16px;
   }
 }
+
+.admin-summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin:24px 0; }
+.admin-summary > div { background:white; border:1px solid #e4e9f0; border-radius:12px; padding:18px; display:grid; gap:5px; }
+.admin-summary strong { font-size:28px; color:#253358; }
+.admin-summary span { font-size:13px; color:#718096; }
+.admin-filters { display:flex; flex-wrap:wrap; gap:12px; margin:0 0 20px; }
+.admin-filters input,.admin-filters select { border:1px solid #dce3ee; background:white; border-radius:8px; padding:12px; font:inherit; }
+.admin-filters input { flex:1; min-width:200px; }
+.client-card { flex-wrap:wrap; }
+.client-checklist { width:100%; border-top:1px solid #e4e9f0; padding-top:14px; }
+.client-checklist summary { cursor:pointer; font-weight:600; color:#405ed4; }
+.client-checklist label { display:flex; align-items:center; gap:8px; padding:7px 0; font-size:14px; }
+@media(max-width:700px) { .admin-summary { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+.client-profile { width:100%; border-top:1px solid #e4e9f0; padding-top:14px; }
+.client-profile summary { cursor:pointer; font-weight:600; color:#405ed4; }
+.client-profile form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:16px; }
+.client-profile label { display:grid; gap:5px; font-size:13px; color:#53627c; }
+.client-profile input,.client-profile textarea { width:100%; border:1px solid #dce3ee; border-radius:8px; padding:10px; font:inherit; }
+.client-profile textarea { min-height:90px; }
+@media(max-width:700px) { .client-profile form { grid-template-columns:1fr; } }
+.admin-alerts { padding:18px 22px; margin:0 0 18px; }
+.admin-alerts h2 { font-size:17px; margin:0 0 10px; }
+.admin-alerts p { margin:8px 0; font-size:14px; color:#53627c; }
+.admin-alerts a { color:#405ed4; }
+.client-checklist form { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.client-checklist form input { flex:1; min-width:180px; border:1px solid #dce3ee; border-radius:8px; padding:10px; }

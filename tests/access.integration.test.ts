@@ -467,6 +467,96 @@ test("un nuevo cliente activa su cuenta y entra solo a sus campañas", async () 
   );
 });
 
+test("checklist se crea por cliente y solo la agencia puede modificarlo", async () => {
+  const list = await request("/api/admin", "GET", undefined, adminCookie);
+  const tasks = list.data.checklist.filter(
+    (item: any) => item.client_id === clientA,
+  );
+  assert.equal(tasks.length, 7);
+  assert.ok(tasks.every((item: any) => !item.completed));
+  const update = {
+    action: "checklist-status",
+    clientId: clientA,
+    itemKey: tasks[0].item_key,
+    completed: true,
+  };
+  assert.equal(
+    (await request("/api/admin", "POST", update, cookieA)).status,
+    403,
+  );
+  assert.equal(
+    (await request("/api/admin", "POST", update, adminCookie)).status,
+    200,
+  );
+  const after = await request("/api/admin", "GET", undefined, adminCookie);
+  assert.equal(
+    after.data.checklist.find(
+      (item: any) =>
+        item.client_id === clientA && item.item_key === tasks[0].item_key,
+    ).completed,
+    true,
+  );
+  assert.ok(
+    after.data.checklist
+      .filter((item: any) => item.client_id === clientB)
+      .every((item: any) => !item.completed),
+  );
+  const custom = {
+    action: "checklist-add",
+    clientId: clientA,
+    title: "Preparar informe de bienvenida",
+  };
+  assert.equal(
+    (await request("/api/admin", "POST", custom, cookieA)).status,
+    403,
+  );
+  assert.equal(
+    (await request("/api/admin", "POST", custom, adminCookie)).status,
+    200,
+  );
+  const updated = await request("/api/admin", "GET", undefined, adminCookie);
+  assert.ok(
+    updated.data.checklist.some(
+      (item: any) =>
+        item.client_id === clientA &&
+        item.title === custom.title &&
+        !item.completed,
+    ),
+  );
+});
+
+test("la ficha y notas internas solo están disponibles para la agencia", async () => {
+  const profile = {
+    action: "save-profile",
+    clientId: clientA,
+    contactName: "Contacto de prueba",
+    contactEmail: "contacto@example.test",
+    contactPhone: "123",
+    responsible: "Ejecutivo",
+    internalNotes: "Nota interna confidencial",
+  };
+  assert.equal(
+    (await request("/api/admin", "POST", profile, cookieA)).status,
+    403,
+  );
+  assert.equal(
+    (await request("/api/admin", "POST", profile, adminCookie)).status,
+    200,
+  );
+  const list = await request("/api/admin", "GET", undefined, adminCookie);
+  assert.equal(
+    list.data.profiles.find((p: any) => p.client_id === clientA).internal_notes,
+    profile.internalNotes,
+  );
+  const report = await request(
+    `/api/report?clientId=${clientA}`,
+    "GET",
+    undefined,
+    cookieA,
+  );
+  assert.ok(!JSON.stringify(report.data).includes(profile.internalNotes));
+});
+
 test("la vista previa muestra el portal del cliente sin ampliar sus permisos", async () => {
   const page = async (id: string, cookie: string) => {
     const r = await fetch(`${base}/?clientId=${id}&preview=client`, {
@@ -566,9 +656,10 @@ test("recuperación de contraseña usa correo, cambia clave y revoca sesiones", 
   assert.ok(mail.length);
   const text = mail[0].replace(/=\r?\n/g, "").replace(/=3D/g, "=");
   const url = text.match(
-    /http:\/\/127\.0\.0\.1:3400\/api\/auth\/reset-password\/[^\s]+/,
+    /http:\/\/127\.0\.0\.1:\d+\/api\/auth\/reset-password\/[^\s]+/,
   )?.[0];
   assert.ok(url, "correo contiene enlace de recuperación");
+  assert.equal(new URL(url).origin, base);
   const bounce = await fetch(url, { redirect: "manual" });
   const destination = bounce.headers.get("location");
   assert.ok(destination);
