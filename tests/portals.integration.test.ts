@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import { hashPassword } from "better-auth/crypto";
 import { SMTPServer } from "smtp-server";
+import { get as httpGet } from "node:http";
 import { getPool } from "../db";
 const agency = process.env.SITE_URL!;
 const client = process.env.CLIENT_SITE_URL!;
@@ -128,14 +129,20 @@ test("cada dominio muestra su entrada y no confía en hosts reenviados", async (
     ).text(),
     /Administración de clientes/,
   );
-  assert.equal(
-    (
-      await request(agency, "/api/auth/get-session", {
-        headers: { host: "untrusted.invalid" },
-      })
-    ).status,
-    400,
+  // fetch normalizes Host; use the HTTP transport to test the actual wire header.
+  const unknownHostStatus = await new Promise<number | undefined>(
+    (resolve, reject) => {
+      httpGet(
+        agency + "/api/auth/get-session",
+        { headers: { Host: "untrusted.invalid" } },
+        (response) => {
+          response.resume();
+          resolve(response.statusCode);
+        },
+      ).on("error", reject);
+    },
   );
+  assert.equal(unknownHostStatus, 400);
 });
 test("roles y sesiones no se pueden intercambiar entre portales", async () => {
   assert.equal(
