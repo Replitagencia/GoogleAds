@@ -1,0 +1,26 @@
+[Unit]
+Description=AgenciaLabs client portal
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=agencialabs
+Group=agencialabs
+WorkingDirectory=/opt/agencialabs/current/runtime
+EnvironmentFile=/opt/agencialabs/.env.production
+Environment=NODE_ENV=production HOSTNAME=127.0.0.1 PORT=3400 NEXT_TELEMETRY_DISABLED=1
+Environment=NODE_OPTIONS=--max-old-space-size=192
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=5
+MemoryHigh=256M
+MemoryMax=320M
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/agencialabs/current/runtime/.next/cache
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

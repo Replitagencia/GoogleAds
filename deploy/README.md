@@ -1,6 +1,20 @@
 # Publicación en nexo-registroevento
 
-Destino autorizado: servidor `nexo-registroevento`. DigitalOcean mostró 38,6 % de uso de memoria y 0,271 % de CPU en la revisión inicial. La comprobación de disco, procesos, puertos, proxy y memoria disponible por SSH sigue pendiente. Los archivos de despliegue están preparados, **no se han aplicado al servidor**.
+Destino autorizado: servidor `nexo-registroevento`. La inspección por SSH confirmó Node 22, Caddy, Nexo en el puerto local 4317, puerto 3400 disponible, unos 564 MB de memoria disponible y 21 GB de disco libre. No hay Docker instalado. Para este servidor se usa el despliegue nativo siguiente; Compose queda como alternativa para otro entorno.
+
+## Despliegue nativo en Nexo
+
+El workflow genera el artefacto `agencialabs-linux-amd64` después de compilar y probar. Incluye `runtime` (Next standalone con recursos públicos) y `tools` (migraciones y administración con sus dependencias). No contiene secretos. Descargar una ejecución satisfactoria y comprobar el SHA-256 antes de transferirlo.
+
+Instalar PostgreSQL 16 desde Ubuntu, limitado a conexiones locales, con una base y rol exclusivos `agencialabs`. Usar 32 MB de shared_buffers, 20 conexiones máximas y 2 MB de work_mem para este inicio de baja carga. Revisar consumo al incorporar clientes.
+
+Extraer cada versión en `/opt/agencialabs/releases/COMMIT` y apuntar `/opt/agencialabs/current` a la versión validada. El usuario de sistema `agencialabs` ejecuta la aplicación. Guardar `.env.production` fuera de las versiones con permisos 600, y los enlaces iniciales en `private/` con acceso restringido.
+
+Ejecutar las migraciones desde `current/tools`, con el archivo de entorno cargado, mediante `node --import tsx scripts/migrate.ts`. La invitación inicial se crea con `scripts/bootstrap-admin.ts CORREO_ADMIN ARCHIVO_PRIVADO`, una vez confirmado el destinatario.
+
+Instalar `deploy/agencialabs.service`; crear previamente `runtime/.next/cache` escribible por `agencialabs`. El servicio escucha solo en 127.0.0.1:3400, tiene límite de 320 MB y reinicio automático. Validar `/api/health` y el acceso anónimo antes de configurar DNS. Añadir el virtual host de `Caddyfile.example` al archivo existente, validarlo y recargar Caddy sin reiniciar Nexo.
+
+Para revertir una versión, restaurar el enlace `current` anterior y reiniciar únicamente `agencialabs.service`. Respaldar PostgreSQL y los secretos por separado; no borrar la base al cambiar de versión.
 
 ## Antes de instalar
 

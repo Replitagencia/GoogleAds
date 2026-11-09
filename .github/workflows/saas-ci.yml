@@ -50,5 +50,22 @@ jobs:
           done
           exit 1
       - run: node --import tsx --test tests/access.integration.test.ts tests/reporting.test.mjs
+      - name: Package Linux standalone release
+        run: |
+          mkdir -p work/release/runtime work/release/tools
+          cp -a .next/standalone/. work/release/runtime/
+          cp -R db lib scripts work/release/tools/
+          cp tsconfig.json deploy/tools/package*.json work/release/tools/
+          npm ci --prefix work/release/tools --no-audit --no-fund
+          (cd work/release/tools && node --import tsx scripts/migrate.ts)
+          tar -czf work/agencialabs-linux-amd64.tar.gz -C work/release .
+          sha256sum work/agencialabs-linux-amd64.tar.gz > work/agencialabs-linux-amd64.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agencialabs-linux-amd64
+          path: |
+            work/agencialabs-linux-amd64.tar.gz
+            work/agencialabs-linux-amd64.sha256
+          retention-days: 14
       - name: Validate Docker deployment builds
         run: docker build --target runtime -t agencialabs:ci .

@@ -1,0 +1,13 @@
+{
+  "name": "agencialabs-admin-tools",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "better-auth": "1.7.18",
+    "drizzle-orm": "0.45.2",
+    "pg": "8.23.1",
+    "nodemailer": "7.0.13",
+    "tsx": "4.22.1"
+  }
+}
