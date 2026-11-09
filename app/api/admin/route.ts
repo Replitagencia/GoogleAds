@@ -12,7 +12,7 @@ export async function GET(request: Request) {
           "SELECT c.id,c.name,c.status,g.customer_id,g.account_name FROM clients c LEFT JOIN google_connections g ON g.client_id=c.id ORDER BY c.name",
         ),
         getPool().query(
-          'SELECT u.id,u.name,u.email,p.disabled,array_remove(array_agg(m.client_id),NULL) AS clients FROM "user" u JOIN portal_users p ON p.user_id=u.id LEFT JOIN memberships m ON m.user_id=u.id WHERE NOT p.is_admin GROUP BY u.id,p.disabled ORDER BY u.email',
+          'SELECT u.id,u.name,u.email,p.disabled,p.is_admin,array_remove(array_agg(m.client_id),NULL) AS clients FROM "user" u JOIN portal_users p ON p.user_id=u.id LEFT JOIN memberships m ON m.user_id=u.id WHERE NOT p.is_admin OR EXISTS (SELECT 1 FROM memberships mm WHERE mm.user_id=u.id) GROUP BY u.id,p.disabled,p.is_admin ORDER BY u.email',
         ),
         getPool().query(
           "SELECT id,email,client_id,expires_at FROM invitations WHERE used_at IS NULL AND expires_at>now() AND NOT is_admin ORDER BY created_at DESC",

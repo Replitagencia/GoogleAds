@@ -15,6 +15,7 @@ type Data = {
     name: string;
     email: string;
     disabled: boolean;
+    is_admin: boolean;
     clients: string[];
   }[];
   invitations: {
@@ -667,21 +668,29 @@ export default function AdminPanel({ email }: { email: string }) {
                       )
                       .join(", ")}
                   </td>
-                  <td>{u.disabled ? "Suspendido" : "Activo"}</td>
                   <td>
-                    <button
-                      className="text-button"
-                      disabled={busy}
-                      onClick={() =>
-                        action({
-                          action: "user-status",
-                          userId: u.id,
-                          disabled: !u.disabled,
-                        })
-                      }
-                    >
-                      {u.disabled ? "Reactivar" : "Suspender"}
-                    </button>
+                    {u.disabled
+                      ? "Suspendido"
+                      : u.is_admin
+                        ? "Administrador de agencia"
+                        : "Activo"}
+                  </td>
+                  <td>
+                    {!u.is_admin && (
+                      <button
+                        className="text-button"
+                        disabled={busy}
+                        onClick={() =>
+                          action({
+                            action: "user-status",
+                            userId: u.id,
+                            disabled: !u.disabled,
+                          })
+                        }
+                      >
+                        {u.disabled ? "Reactivar" : "Suspender"}
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

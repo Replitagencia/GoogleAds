@@ -238,3 +238,48 @@ test("recuperación de cliente usa su dominio y no envía enlaces de administrad
   });
   assert.equal(mail.length, 1);
 });
+
+test("un miembro de agencia con empresa asignada puede usar ambos portales sin privilegios de agencia en el portal de cliente", async () => {
+  const db = getPool();
+  await db.query(
+    'UPDATE portal_users SET is_admin=true WHERE user_id=(SELECT id FROM "user" WHERE email=$1)',
+    [clientEmail],
+  );
+  const otherId = randomUUID();
+  await db.query(
+    "INSERT INTO clients(id,name) VALUES($1,'Otra empresa de prueba')",
+    [otherId],
+  );
+  await db.query('DELETE FROM "rateLimit"');
+  const agencyAccess = await login(agency, clientEmail);
+  const clientAccess = await login(client, clientEmail);
+  assert.equal(
+    (await request(agency, "/api/admin", { cookie: agencyAccess })).status,
+    200,
+  );
+  assert.equal(
+    (await request(client, "/api/admin", { cookie: clientAccess })).status,
+    403,
+  );
+  assert.equal(
+    (
+      await request(client, `/api/google/status?clientId=${companyId}`, {
+        cookie: clientAccess,
+      })
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await request(client, `/api/google/status?clientId=${otherId}`, {
+        cookie: clientAccess,
+      })
+    ).status,
+    404,
+  );
+  const page = await (
+    await request(client, `/?clientId=${companyId}`, { cookie: clientAccess })
+  ).text();
+  assert.ok(!page.includes("Configurar cuenta"));
+  assert.ok(!page.includes("Administrar clientes"));
+});

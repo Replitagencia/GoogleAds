@@ -30,9 +30,13 @@ export function portalForHeaders(headers: Headers): PortalConfig | null {
     }) || null
   );
 }
-export function roleMatchesPortal(portal: PortalConfig, isAdmin: boolean) {
+export function roleMatchesPortal(
+  portal: PortalConfig,
+  isAdmin: boolean,
+  hasClientAccess = false,
+) {
   return (
     portal.audience === "shared" ||
-    (portal.audience === "agency" ? isAdmin : !isAdmin)
+    (portal.audience === "agency" ? isAdmin : !isAdmin || hasClientAccess)
   );
 }

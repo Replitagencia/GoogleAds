@@ -21,20 +21,20 @@ export async function getPortalUser(
   });
   if (!session) return null;
   const { rows } = await getPool().query(
-    "SELECT is_admin,disabled FROM portal_users WHERE user_id=$1",
+    "SELECT is_admin,disabled,EXISTS (SELECT 1 FROM memberships m JOIN clients c ON c.id=m.client_id WHERE m.user_id=portal_users.user_id AND c.status='active') AS has_client_access FROM portal_users WHERE user_id=$1",
     [session.user.id],
   );
   if (
     !rows[0] ||
     rows[0].disabled ||
-    !roleMatchesPortal(portal, rows[0].is_admin)
+    !roleMatchesPortal(portal, rows[0].is_admin, rows[0].has_client_access)
   )
     return null;
   return {
     userId: session.user.id,
     email: session.user.email,
     name: session.user.name,
-    isAdmin: rows[0].is_admin,
+    isAdmin: portal.audience === "client" ? false : rows[0].is_admin,
   };
 }
 export async function requireUser(input?: Headers) {

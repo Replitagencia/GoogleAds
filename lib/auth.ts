@@ -20,13 +20,17 @@ function createAuth(portal: PortalConfig) {
         create: {
           before: async (session) => {
             const { rows } = await getPool().query(
-              "SELECT disabled,is_admin FROM portal_users WHERE user_id=$1",
+              "SELECT disabled,is_admin,EXISTS (SELECT 1 FROM memberships m JOIN clients c ON c.id=m.client_id WHERE m.user_id=portal_users.user_id AND c.status='active') AS has_client_access FROM portal_users WHERE user_id=$1",
               [session.userId],
             );
             if (
               !rows[0] ||
               rows[0].disabled ||
-              !roleMatchesPortal(portal, rows[0].is_admin)
+              !roleMatchesPortal(
+                portal,
+                rows[0].is_admin,
+                rows[0].has_client_access,
+              )
             )
               return false;
             return { data: session };
@@ -43,13 +47,17 @@ function createAuth(portal: PortalConfig) {
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, url }) => {
         const { rows } = await getPool().query(
-          "SELECT is_admin,disabled FROM portal_users WHERE user_id=$1",
+          "SELECT is_admin,disabled,EXISTS (SELECT 1 FROM memberships m JOIN clients c ON c.id=m.client_id WHERE m.user_id=portal_users.user_id AND c.status='active') AS has_client_access FROM portal_users WHERE user_id=$1",
           [user.id],
         );
         if (
           !rows[0] ||
           rows[0].disabled ||
-          !roleMatchesPortal(portal, rows[0].is_admin)
+          !roleMatchesPortal(
+            portal,
+            rows[0].is_admin,
+            rows[0].has_client_access,
+          )
         )
           return;
         await sendPasswordReset(user.email, url);
