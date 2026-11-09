@@ -1,13 +1,18 @@
 import { betterAuth } from "better-auth";
 import { getPool } from "../db";
 import { sendPasswordReset } from "./mail";
-let instance: ReturnType<typeof createAuth> | undefined;
-function createAuth() {
+import {
+  configuredPortals,
+  roleMatchesPortal,
+  type PortalConfig,
+} from "./portals";
+const instances = new Map<string, ReturnType<typeof createAuth>>();
+function createAuth(portal: PortalConfig) {
   if (!process.env.SITE_URL || !process.env.BETTER_AUTH_SECRET)
     throw new Error("Falta configurar la autenticación del portal.");
   return betterAuth({
     appName: "AgenciaLabs",
-    baseURL: process.env.SITE_URL,
+    baseURL: portal.origin,
     secret: process.env.BETTER_AUTH_SECRET,
     database: getPool(),
     databaseHooks: {
@@ -15,16 +20,21 @@ function createAuth() {
         create: {
           before: async (session) => {
             const { rows } = await getPool().query(
-              "SELECT disabled FROM portal_users WHERE user_id=$1",
+              "SELECT disabled,is_admin FROM portal_users WHERE user_id=$1",
               [session.userId],
             );
-            if (!rows[0] || rows[0].disabled) return false;
+            if (
+              !rows[0] ||
+              rows[0].disabled ||
+              !roleMatchesPortal(portal, rows[0].is_admin)
+            )
+              return false;
             return { data: session };
           },
         },
       },
     },
-    trustedOrigins: [process.env.SITE_URL],
+    trustedOrigins: [portal.origin],
     emailAndPassword: {
       enabled: true,
       disableSignUp: true,
@@ -32,6 +42,16 @@ function createAuth() {
       maxPasswordLength: 128,
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, url }) => {
+        const { rows } = await getPool().query(
+          "SELECT is_admin,disabled FROM portal_users WHERE user_id=$1",
+          [user.id],
+        );
+        if (
+          !rows[0] ||
+          rows[0].disabled ||
+          !roleMatchesPortal(portal, rows[0].is_admin)
+        )
+          return;
         await sendPasswordReset(user.email, url);
       },
     },
@@ -52,13 +72,20 @@ function createAuth() {
       },
     },
     advanced: {
-      cookiePrefix: "agencialabs",
-      useSecureCookies: process.env.SITE_URL.startsWith("https:"),
+      cookiePrefix:
+        portal.audience === "client" ? "agencialabs-client" : "agencialabs",
+      useSecureCookies: portal.origin.startsWith("https:"),
       ipAddress: { ipAddressHeaders: ["x-real-ip"] },
     },
   });
 }
 
-export function getAuth() {
-  return (instance ??= createAuth());
+export function getAuth(portal: PortalConfig = configuredPortals()[0]) {
+  const key = portal.origin + ":" + portal.audience;
+  let instance = instances.get(key);
+  if (!instance) {
+    instance = createAuth(portal);
+    instances.set(key, instance);
+  }
+  return instance;
 }

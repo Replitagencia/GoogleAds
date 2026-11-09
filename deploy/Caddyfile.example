@@ -4,3 +4,8 @@ ads.registroevento.cl {
         header_up X-Real-IP {remote_host}
     }
 }
+cliente.registroevento.cl {
+    reverse_proxy 127.0.0.1:3400 {
+        header_up X-Real-IP {remote_host}
+    }
+}

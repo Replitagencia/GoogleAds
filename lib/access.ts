@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { getAuth } from "./auth";
 import { getPool } from "../db";
 import { AccessError } from "./errors";
+import { portalForHeaders, roleMatchesPortal } from "./portals";
 export { AccessError } from "./errors";
 export type PortalUser = {
   userId: string;
@@ -12,15 +13,23 @@ export type PortalUser = {
 export async function getPortalUser(
   input?: Headers,
 ): Promise<PortalUser | null> {
-  const session = await getAuth().api.getSession({
-    headers: input || (await headers()),
+  const requestHeaders = input || (await headers());
+  const portal = portalForHeaders(requestHeaders);
+  if (!portal) return null;
+  const session = await getAuth(portal).api.getSession({
+    headers: requestHeaders,
   });
   if (!session) return null;
   const { rows } = await getPool().query(
     "SELECT is_admin,disabled FROM portal_users WHERE user_id=$1",
     [session.user.id],
   );
-  if (!rows[0] || rows[0].disabled) return null;
+  if (
+    !rows[0] ||
+    rows[0].disabled ||
+    !roleMatchesPortal(portal, rows[0].is_admin)
+  )
+    return null;
   return {
     userId: session.user.id,
     email: session.user.email,

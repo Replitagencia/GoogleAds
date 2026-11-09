@@ -4,6 +4,7 @@ import { getDb } from "@/db";
 import { connections } from "@/db/schema";
 
 export const ADS_SCOPE = "https://www.googleapis.com/auth/adwords";
+import { portalForHeaders } from "./portals";
 export function configuration() {
   return {
     ready: !!(
@@ -22,7 +23,8 @@ export function json(body: unknown, status = 200) {
   });
 }
 export function sameOrigin(request: Request) {
-  return request.headers.get("origin") === env.SITE_URL;
+  const portal = portalForHeaders(request.headers);
+  return !!portal && request.headers.get("origin") === portal.origin;
 }
 export async function connection(clientId: string) {
   return getDb()

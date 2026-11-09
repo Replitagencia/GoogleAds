@@ -1,10 +1,23 @@
 import { invitationInfo, acceptInvitation } from "@/lib/invitations";
 import { getPortalUser, apiError, AccessError } from "@/lib/access";
 import { sameOrigin, json } from "@/lib/google-ads";
+import { portalForHeaders, roleMatchesPortal } from "@/lib/portals";
+async function infoForPortal(request: Request, token: string) {
+  const portal = portalForHeaders(request.headers);
+  if (!portal) throw new AccessError("Portal no permitido.", 400);
+  const info = await invitationInfo(token);
+  if (!roleMatchesPortal(portal, info.isAdmin))
+    throw new AccessError(
+      "Abre el enlace de activación en el portal indicado en tu invitación.",
+      403,
+    );
+  return info;
+}
 export async function GET(request: Request) {
   try {
     return json(
-      await invitationInfo(
+      await infoForPortal(
+        request,
         new URL(request.url).searchParams.get("token") || "",
       ),
     );
@@ -23,6 +36,7 @@ export async function POST(request: Request) {
       typeof body.password !== "string"
     )
       throw new AccessError("Solicitud inválida.", 400);
+    await infoForPortal(request, body.token);
     return json(
       await acceptInvitation(
         body.token,

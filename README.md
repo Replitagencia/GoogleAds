@@ -1,6 +1,6 @@
 # AgenciaLabs · SaaS de Google Ads
 
-Portal independiente de ChatGPT, con Next.js 16, Better Auth y PostgreSQL. El administrador crea espacios de clientes, conecta Google Ads e invita a usuarios. Cada cliente consulta únicamente sus empresas asignadas. El dominio previsto es `ads.registroevento.cl`.
+Portal independiente de ChatGPT, con Next.js 16, Better Auth y PostgreSQL. La agencia administra en `ads.registroevento.cl`; los clientes ingresan en `cliente.registroevento.cl` y consultan únicamente sus empresas asignadas. Cada dominio admite su rol, usa cookies limitadas a su host y valida el origen de las operaciones. El administrador crea espacios de clientes, conecta Google Ads e invita a usuarios.
 
 ## Funciones
 
@@ -54,6 +54,7 @@ La prueba de Google sigue siendo independiente de la autenticación SaaS. Si el 
 ## Configuración de seguridad
 
 - `SITE_URL` es el origen exacto de producción, sin barra final; todas las escrituras propias verifican Origin.
+- `CLIENT_SITE_URL` es el origen del portal de clientes. Las invitaciones y recuperaciones usan el dominio correspondiente. Para pruebas locales de un solo portal, dejarlo sin configurar. Google OAuth permanece en `SITE_URL`.
 - El proxy debe **reemplazar** `X-Real-IP`. La aplicación y PostgreSQL no se exponen directamente a Internet.
 - `BETTER_AUTH_SECRET` y `TOKEN_ENCRYPTION_KEY` son distintos. Conservar la clave de cifrado de Google; cambiarla sin migración hace ilegibles los tokens almacenados.
 - Todas las cookies de producción se emiten con HTTPS; la librería gestiona las sesiones y la limitación de intentos en PostgreSQL.

@@ -4,9 +4,14 @@ import { FlaskConical, ArrowRight, ShieldCheck } from "lucide-react";
 import { authClient } from "./auth-client";
 export default function AuthForm({
   mode,
+  audience = "shared",
+  otherPortal,
 }: {
   mode: "login" | "activate" | "reset";
+  audience?: "shared" | "agency" | "client";
+  otherPortal?: string;
 }) {
+  const agency = audience === "agency";
   const [email, setEmail] = useState(""),
     [password, setPassword] = useState(""),
     [name, setName] = useState(""),
@@ -87,7 +92,7 @@ export default function AuthForm({
         throw new Error(
           r.error.status === 429
             ? "Demasiados intentos. Espera un minuto."
-            : "Correo o contraseña incorrectos.",
+            : "No pudimos ingresar. Revisa tu correo, contraseña y que estés en el portal correcto.",
         );
       window.location.assign("/");
     } catch (e) {
@@ -103,7 +108,9 @@ export default function AuthForm({
         ? "Una nueva contraseña."
         : recover
           ? "Recupera tu acceso."
-          : "Tus campañas, en un lugar.";
+          : agency
+            ? "Administración de clientes."
+            : "Tus campañas, en un lugar.";
   return (
     <div className="auth-layout">
       <section className="auth-story">
@@ -113,30 +120,58 @@ export default function AuthForm({
           </span>
           <span>
             Agencia<span className="brand-light">Labs</span>
-            <small>PORTAL DE CLIENTES</small>
+            <small>
+              {agency ? "ADMINISTRACIÓN DE LA AGENCIA" : "PORTAL DE CLIENTES"}
+            </small>
           </span>
         </a>
         <div>
           <span className="eyebrow">CLARIDAD PARA CRECER</span>
           <h1>
-            Entiende el impacto
-            <br />
-            de tu publicidad.
+            {agency ? (
+              <>
+                Gestiona clientes
+                <br />y campañas.
+              </>
+            ) : (
+              <>
+                Entiende el impacto
+                <br />
+                de tu publicidad.
+              </>
+            )}
           </h1>
           <p>
-            Resultados, inversión y trabajo de tu agencia.
+            {agency
+              ? "Conecta cuentas y organiza los accesos de tus clientes."
+              : "Resultados, inversión y trabajo de tu agencia."}
             <br />
             Una visión compartida para tomar mejores decisiones.
           </p>
           <div className="auth-points">
             <span>
-              01 <strong>Tus campañas de Google Ads</strong>
+              01{" "}
+              <strong>
+                {agency
+                  ? "Tus clientes y sus cuentas"
+                  : "Tus campañas de Google Ads"}
+              </strong>
             </span>
             <span>
-              02 <strong>Resultados y evolución</strong>
+              02{" "}
+              <strong>
+                {agency
+                  ? "Accesos y conexiones de Google Ads"
+                  : "Resultados y evolución"}
+              </strong>
             </span>
             <span>
-              03 <strong>Gestiones de AgenciaLabs</strong>
+              03{" "}
+              <strong>
+                {agency
+                  ? "Seguimiento de campañas"
+                  : "Gestiones de AgenciaLabs"}
+              </strong>
             </span>
           </div>
         </div>
@@ -146,7 +181,9 @@ export default function AuthForm({
       </section>
       <main className="auth-main">
         <form className="auth-card" onSubmit={submit}>
-          <span className="eyebrow">BIENVENIDO A AGENCIALABS</span>
+          <span className="eyebrow">
+            {agency ? "ACCESO DE LA AGENCIA" : "ACCESO DE CLIENTES"}
+          </span>
           <h2>{title}</h2>
           <p>
             {mode === "activate"
@@ -281,9 +318,19 @@ export default function AuthForm({
             </a>
           )}
           <p className="auth-help">
-            ¿Aún no tienes acceso? Solicita una invitación a tu ejecutivo de
-            AgenciaLabs.
+            {agency
+              ? "Acceso exclusivo para la administración de AgenciaLabs."
+              : "¿Aún no tienes acceso? Solicita una invitación a tu ejecutivo de AgenciaLabs."}
           </p>
+          {otherPortal && (
+            <p className="auth-help">
+              <a href={otherPortal + "/login"}>
+                {agency
+                  ? "¿Eres cliente? Entra a tu portal →"
+                  : "Acceso de la agencia →"}
+              </a>
+            </p>
+          )}
         </form>
         <small>© 2026 AgenciaLabs</small>
       </main>

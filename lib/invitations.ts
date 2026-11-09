@@ -52,7 +52,10 @@ async function issueInvitation(
     "INSERT INTO audit_log(actor_id,action,client_id) VALUES($1,'invitation.created',$2)",
     [actorId, clientId],
   );
-  return `${process.env.SITE_URL}/activate?token=${token}`;
+  const origin = bootstrap
+    ? process.env.SITE_URL
+    : process.env.CLIENT_SITE_URL || process.env.SITE_URL;
+  return `${origin}/activate?token=${token}`;
 }
 async function invitationTransaction<T>(
   operation: (db: PoolClient) => Promise<T>,
@@ -115,6 +118,7 @@ export async function invitationInfo(token: string) {
   );
   return {
     email: rows[0].email,
+    isAdmin: rows[0].is_admin,
     clientName: rows[0].name || "Administración de AgenciaLabs",
     existingUser: !!exists.rowCount,
   };

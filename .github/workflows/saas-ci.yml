@@ -50,6 +50,14 @@ jobs:
           done
           exit 1
       - run: node --import tsx --test tests/access.integration.test.ts tests/reporting.test.mjs
+      - name: Separate agency and client portals
+        run: |
+          HOSTNAME=127.0.0.1 PORT=3402 SITE_URL=http://127.0.0.1:3402 CLIENT_SITE_URL=http://localhost:3402 node .next/standalone/server.js > /tmp/agencialabs-portals.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl --max-time 3 -fsS http://127.0.0.1:3402/api/health; then break; fi
+            sleep 1
+          done
+          SITE_URL=http://127.0.0.1:3402 CLIENT_SITE_URL=http://localhost:3402 node --import tsx --test tests/portals.integration.test.ts
       - name: Package Linux standalone release
         run: |
           mkdir -p work/release/runtime work/release/tools

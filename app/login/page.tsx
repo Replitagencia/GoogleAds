@@ -1,4 +1,4 @@
-import AuthForm from "../auth-form";
+import AuthForm from "../auth-page";
 export default function Login() {
   return <AuthForm mode="login" />;
 }
