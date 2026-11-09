@@ -472,7 +472,7 @@ test("checklist se crea por cliente y solo la agencia puede modificarlo", async 
   const tasks = list.data.checklist.filter(
     (item: any) => item.client_id === clientA,
   );
-  assert.equal(tasks.length, 7);
+  assert.equal(tasks.length, 10);
   assert.ok(tasks.every((item: any) => !item.completed));
   const update = {
     action: "checklist-status",
@@ -495,6 +495,12 @@ test("checklist se crea por cliente y solo la agencia puede modificarlo", async 
         item.client_id === clientA && item.item_key === tasks[0].item_key,
     ).completed,
     true,
+  );
+  assert.ok(
+    after.data.checklist.find(
+      (item: any) =>
+        item.client_id === clientA && item.item_key === tasks[0].item_key,
+    ).completed_at,
   );
   assert.ok(
     after.data.checklist
@@ -522,6 +528,66 @@ test("checklist se crea por cliente y solo la agencia puede modificarlo", async 
         item.title === custom.title &&
         !item.completed,
     ),
+  );
+  const stage = {
+    action: "checklist-update",
+    clientId: clientA,
+    itemKey: tasks[0].item_key,
+    stage: "approval",
+    status: "waiting_client",
+    responsible: "Cliente",
+    dueDate: "2026-11-20",
+    evidence: "Correo de aprobación de prueba",
+  };
+  assert.equal(
+    (await request("/api/admin", "POST", stage, cookieA)).status,
+    403,
+  );
+  assert.equal(
+    (
+      await request(
+        "/api/admin",
+        "POST",
+        { ...stage, dueDate: "2026-02-30" },
+        adminCookie,
+      )
+    ).status,
+    400,
+  );
+  assert.equal(
+    (await request("/api/admin", "POST", stage, adminCookie)).status,
+    200,
+  );
+  const revised = await request("/api/admin", "GET", undefined, adminCookie);
+  const item = revised.data.checklist.find(
+    (t: any) => t.client_id === clientA && t.item_key === stage.itemKey,
+  );
+  assert.equal(item.workflow_status, "waiting_client");
+  assert.equal(item.responsible, "Cliente");
+  assert.equal(item.due_date, "2026-11-20");
+  assert.equal(item.evidence, stage.evidence);
+  assert.equal(item.completed, false);
+  assert.equal(item.completed_at, null);
+  await getPool().query(
+    await (
+      await import("node:fs/promises")
+    ).readFile(new URL("../db/saas.sql", import.meta.url), "utf8"),
+  );
+  const afterMigration = await request(
+    "/api/admin",
+    "GET",
+    undefined,
+    adminCookie,
+  );
+  const preserved = afterMigration.data.checklist.find(
+    (t: any) => t.client_id === clientA && t.item_key === stage.itemKey,
+  );
+  assert.equal(preserved.workflow_status, "waiting_client");
+  assert.equal(preserved.evidence, stage.evidence);
+  assert.equal(
+    afterMigration.data.checklist.filter((t: any) => t.client_id === clientA)
+      .length,
+    11,
   );
 });
 
@@ -555,6 +621,156 @@ test("la ficha y notas internas solo están disponibles para la agencia", async 
     cookieA,
   );
   assert.ok(!JSON.stringify(report.data).includes(profile.internalNotes));
+});
+
+test("gestiones internas de agencia están aisladas de los clientes", async () => {
+  const entry = {
+    action: "work-log-add",
+    clientId: clientA,
+    kind: "optimization",
+    title: "Optimización de prueba",
+    body: "Observación interna de prueba",
+  };
+  assert.equal(
+    (await request("/api/admin", "POST", entry, cookieA)).status,
+    403,
+  );
+  assert.equal(
+    (await request("/api/admin", "POST", entry, adminCookie)).status,
+    200,
+  );
+  const list = await request("/api/admin", "GET", undefined, adminCookie);
+  assert.ok(
+    list.data.workLog.some(
+      (x: any) => x.client_id === clientA && x.title === entry.title,
+    ),
+  );
+  assert.ok(
+    list.data.workLog.some(
+      (x: any) =>
+        x.client_id === clientA &&
+        x.title === "Gestión de prueba" &&
+        x.shared === true,
+    ),
+  );
+  assert.ok(
+    list.data.workLog.some(
+      (x: any) =>
+        x.client_id === clientA &&
+        x.title === entry.title &&
+        x.shared === false,
+    ),
+  );
+  const workspace = await request(
+    `/api/workspace?clientId=${clientA}`,
+    "GET",
+    undefined,
+    cookieA,
+  );
+  assert.ok(!JSON.stringify(workspace.data).includes(entry.body));
+});
+
+test("resumen por cuenta distingue datos reales, presupuesto y datos vencidos", async () => {
+  const pool = getPool(),
+    old = (
+      await pool.query(
+        "SELECT id,payload,expires_at FROM report_cache WHERE id LIKE $1",
+        [`v2:${clientA}:%`],
+      )
+    ).rows[0];
+  const period = periods(30, "America/Santiago");
+  const report = {
+    source: "google",
+    days: 30,
+    customerId: "1111111111",
+    fetchedAt: new Date().toISOString(),
+    currency: "CLP",
+    campaignStatuses: [
+      {
+        id: "3",
+        name: "No apta",
+        status: "ENABLED",
+        primaryStatus: "NOT_ELIGIBLE",
+      },
+      {
+        id: "1",
+        name: "Pausada de prueba",
+        status: "PAUSED",
+        primaryStatus: "PAUSED",
+      },
+    ],
+    campaigns: [
+      { id: "1", name: "Pausada de prueba", status: "PAUSED" },
+      { id: "2", name: "Activa", status: "ENABLED" },
+    ],
+    insights: {
+      period,
+      unavailable: [],
+      totals: { cost: 100, clicks: 25, conversions: 30 },
+      previous: { conversions: 20 },
+      monthCost: 85,
+    },
+  };
+  try {
+    await pool.query(
+      "UPDATE report_cache SET payload=$2,expires_at=$3 WHERE id=$1",
+      [old.id, JSON.stringify(report), Date.now() + 60000],
+    );
+    const active = await request("/api/admin", "GET", undefined, adminCookie);
+    const summary = active.data.clients.find(
+      (c: any) => c.id === clientA,
+    ).summary;
+    assert.equal(summary.state, "available");
+    assert.equal(summary.fresh, true);
+    assert.equal(summary.cost, 100);
+    assert.equal(summary.conversionChange, 50);
+    assert.equal(summary.monthCost, 85);
+    assert.equal(summary.budget, 100);
+    assert.equal(summary.pausedCampaigns[0].name, "Pausada de prueba");
+    assert.equal(summary.notServingCampaigns[0].name, "No apta");
+    assert.equal(summary.campaignStatusAvailable, true);
+    const forcedByClient = await request(
+      `/api/report?clientId=${clientA}&days=30&refresh=1`,
+      "GET",
+      undefined,
+      cookieA,
+    );
+    assert.equal(forcedByClient.status, 200);
+    assert.equal(forcedByClient.data.customerId, "1111111111");
+    assert.equal(
+      active.data.clients.find((c: any) => c.id === clientB).summary.state,
+      "unavailable",
+    );
+    const legacy = {
+      ...report,
+      campaignStatuses: undefined,
+      insights: { ...report.insights, previous: { conversions: 0 } },
+    };
+    await pool.query("UPDATE report_cache SET payload=$2 WHERE id=$1", [
+      old.id,
+      JSON.stringify(legacy),
+    ]);
+    const older = await request("/api/admin", "GET", undefined, adminCookie);
+    const olderSummary = older.data.clients.find(
+      (c: any) => c.id === clientA,
+    ).summary;
+    assert.equal(olderSummary.conversionChange, null);
+    assert.equal(olderSummary.campaignStatusAvailable, false);
+    assert.deepEqual(olderSummary.pausedCampaigns, []);
+    await pool.query("UPDATE report_cache SET expires_at=0 WHERE id=$1", [
+      old.id,
+    ]);
+    const stale = await request("/api/admin", "GET", undefined, adminCookie);
+    assert.equal(
+      stale.data.clients.find((c: any) => c.id === clientA).summary.fresh,
+      false,
+    );
+  } finally {
+    await pool.query(
+      "UPDATE report_cache SET payload=$2,expires_at=$3 WHERE id=$1",
+      [old.id, old.payload, old.expires_at],
+    );
+  }
 });
 
 test("solicitudes: cliente crea y conversa; agencia asigna y gestiona; otros clientes no acceden", async () => {

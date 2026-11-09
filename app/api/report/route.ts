@@ -27,7 +27,7 @@ const fields =
   "metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions";
 export async function GET(request: Request) {
   try {
-    const { clientId } = await requireClient(request);
+    const { clientId, user } = await requireClient(request);
     const saved = await connection(clientId);
     if (!saved?.customerId)
       return json(
@@ -42,7 +42,9 @@ export async function GET(request: Request) {
       .from(reportCache)
       .where(eq(reportCache.id, cacheId))
       .then((rows) => rows[0]);
-    if (cached && cached.expiresAt > Date.now())
+    const force =
+      user.isAdmin && new URL(request.url).searchParams.get("refresh") === "1";
+    if (cached && cached.expiresAt > Date.now() && !force)
       return json(JSON.parse(cached.payload));
     const token = await accessToken(clientId),
       query = (q: string) => searchAds(token, saved.customerId!, q);
@@ -73,6 +75,7 @@ export async function GET(request: Request) {
       adRows,
       actionRows,
       conversionRows,
+      campaignStatusRows,
     ] = await Promise.all([
       optional(
         "devices",
@@ -101,6 +104,10 @@ export async function GET(request: Request) {
       optional(
         "conversionMetrics",
         `SELECT segments.conversion_action, segments.conversion_action_name, metrics.conversions, metrics.all_conversions FROM customer WHERE ${range}`,
+      ),
+      optional(
+        "campaignStatus",
+        "SELECT campaign.id, campaign.name, campaign.status, campaign.primary_status FROM campaign WHERE campaign.status != 'REMOVED'",
       ),
     ]);
     const geoNames = new Map<string, string>();
@@ -195,6 +202,12 @@ export async function GET(request: Request) {
         status: r.campaign.status,
         channel: r.campaign.advertisingChannelType,
         ...metrics(r),
+      })),
+      campaignStatuses: campaignStatusRows.map((r) => ({
+        id: r.campaign.id,
+        name: r.campaign.name,
+        status: r.campaign.status,
+        primaryStatus: r.campaign.primaryStatus || null,
       })),
       daily,
       insights: {

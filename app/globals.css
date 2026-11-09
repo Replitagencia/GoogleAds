@@ -2267,3 +2267,21 @@ footer {
 .ticket-placeholder { padding:50px 10px; color:#718096; text-align:center; }
 .ticket-placeholder h2 { color:#293754; font-size:20px; }
 @media(max-width:700px) { .tickets-page { padding:20px 16px 48px; } .tickets-header { align-items:start; flex-direction:column; } .ticket-layout { grid-template-columns:1fr; } .ticket-sidebar,.ticket-detail { padding:18px; } }
+.agency-results { display:grid; gap:5px; margin:12px 0; padding:12px; border-radius:9px; background:#f5f7ff; color:#52617c; font-size:13px; }
+.agency-results strong { color:#293754; }
+.agency-results .text-button { justify-self:start; }
+.agency-results small { color:#718096; }
+.agency-task { border-top:1px solid #edf0f6; padding:10px 0; }
+.agency-task summary { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; color:#293754; font-weight:600; cursor:pointer; }
+.agency-task summary small { color:#718096; font-weight:400; }
+.agency-task-form,.agency-log-form { display:grid !important; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding:14px 0; }
+.agency-task-form label,.agency-log-form label { display:grid; gap:5px; align-items:stretch; padding:0; color:#53627c; font-size:13px; }
+.agency-task-form input,.agency-task-form select,.agency-task-form textarea,.agency-log-form input,.agency-log-form select,.agency-log-form textarea { width:100%; min-width:0; padding:10px; border:1px solid #dce3ee; border-radius:8px; background:white; font:inherit; color:#293754; }
+.agency-task-form textarea,.agency-log-form textarea { min-height:80px; resize:vertical; }
+.agency-wide { grid-column:1/-1; }
+.agency-log { display:grid; gap:10px; margin-top:16px; }
+.agency-log article { display:grid; gap:5px; background:#f6f8fc; padding:12px; border-radius:8px; }
+.agency-log small { color:#718096; }
+.agency-log p { white-space:pre-wrap; overflow-wrap:anywhere; }
+.admin-alerts small { color:#718096; line-height:1.5; }
+@media(max-width:700px) { .agency-task-form,.agency-log-form { grid-template-columns:1fr; } .agency-wide { grid-column:auto; } }

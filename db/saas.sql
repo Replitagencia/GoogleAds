@@ -75,3 +75,36 @@ CREATE TABLE IF NOT EXISTS ticket_messages (
 );
 CREATE INDEX IF NOT EXISTS tickets_client_updated ON tickets(client_id,updated_at DESC);
 CREATE INDEX IF NOT EXISTS ticket_messages_ticket_created ON ticket_messages(ticket_id,created_at);
+
+-- Las columnas nuevas conservan el checklist y su progreso existentes.
+ALTER TABLE client_checklist ADD COLUMN IF NOT EXISTS stage text NOT NULL DEFAULT 'general';
+ALTER TABLE client_checklist ADD COLUMN IF NOT EXISTS workflow_status text NOT NULL DEFAULT 'pending';
+ALTER TABLE client_checklist ADD COLUMN IF NOT EXISTS responsible text NOT NULL DEFAULT '';
+ALTER TABLE client_checklist ADD COLUMN IF NOT EXISTS due_date date;
+ALTER TABLE client_checklist ADD COLUMN IF NOT EXISTS evidence text NOT NULL DEFAULT '';
+UPDATE client_checklist SET workflow_status='done' WHERE completed=true AND workflow_status='pending';
+UPDATE client_checklist SET stage=CASE item_key WHEN 'contacto' THEN 'briefing' WHEN 'objetivos' THEN 'briefing' WHEN 'accesos' THEN 'access' WHEN 'google_ads' THEN 'access' WHEN 'presupuesto' THEN 'briefing' WHEN 'seguimiento' THEN 'tracking' WHEN 'revision' THEN 'tracking' ELSE stage END WHERE stage='general';
+CREATE OR REPLACE FUNCTION seed_client_checklist() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+ INSERT INTO client_checklist(client_id,item_key,title,position,stage)
+ SELECT NEW.id, item_key, title, position,stage FROM (VALUES
+ ('contacto','Registrar contacto y responsable',1,'briefing'),('objetivos','Definir objetivos de la campaña',2,'briefing'),
+ ('accesos','Crear y comprobar accesos del cliente',3,'access'),('google_ads','Conectar y validar Google Ads',4,'access'),
+ ('presupuesto','Definir presupuesto y período',5,'briefing'),('seguimiento','Revisar conversiones y medición',6,'tracking'),
+ ('revision','Revisar resultados con el cliente',7,'tracking'),('materiales','Recibir y validar materiales del cliente',8,'materials'),
+ ('aprobacion','Registrar aprobación del borrador',9,'approval'),('publicacion','Verificar publicación y avisar al cliente',10,'launch')
+ ) AS defaults(item_key,title,position,stage) ON CONFLICT DO NOTHING;
+ RETURN NEW;
+END $$;
+INSERT INTO client_checklist(client_id,item_key,title,position,stage)
+ SELECT c.id,d.item_key,d.title,d.position,d.stage FROM clients c CROSS JOIN (VALUES
+ ('materiales','Recibir y validar materiales del cliente',8,'materials'),('aprobacion','Registrar aprobación del borrador',9,'approval'),('publicacion','Verificar publicación y avisar al cliente',10,'launch')
+ ) AS d(item_key,title,position,stage) ON CONFLICT DO NOTHING;
+CREATE TABLE IF NOT EXISTS agency_work_log (
+ id text PRIMARY KEY, client_id text NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+ author_id text NOT NULL REFERENCES "user"(id), kind text NOT NULL CHECK(kind IN ('management','optimization')),
+ title text NOT NULL, body text NOT NULL DEFAULT '', created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS agency_work_log_client_created ON agency_work_log(client_id,created_at DESC);
+ALTER TABLE client_checklist ADD COLUMN IF NOT EXISTS completed_at timestamptz;
+UPDATE client_checklist SET completed_at=updated_at WHERE completed AND completed_at IS NULL;

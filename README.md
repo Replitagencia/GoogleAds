@@ -48,9 +48,15 @@ node --env-file=.env.local --import tsx --test tests/access.integration.test.ts 
 
 Ver [deploy/README.md](deploy/README.md). Esta rama sustituye el alojamiento de Sites por un servidor Node.js. No debe publicarse con el proyecto antiguo de Sites; su manifiesto y autenticación se retiraron de esta rama.
 
-La conexión de Eticsa que existe en la publicación anterior no se ha copiado: está cifrada en otra base de datos. En el servidor nuevo se debe volver a autorizar Google como administrador y validar su ID de cliente de Google Ads. El URI `https://ads.registroevento.cl/api/google/callback` ya está registrado en Google Cloud. Configurar el mismo cliente OAuth en el nuevo servidor mediante secretos; no copiar archivos JSON a GitHub.
+Las conexiones de Google se configuran por cliente y sus credenciales permanecen cifradas en el servidor. El URI `https://ads.registroevento.cl/api/google/callback` debe estar registrado en Google Cloud. Configurar el cliente OAuth mediante secretos; no copiar archivos JSON a GitHub.
 
 La prueba de Google sigue siendo independiente de la autenticación SaaS. Si el consentimiento OAuth continúa en modo de prueba, revisar sus límites antes de incorporar más cuentas reales. El alcance concedido por Google es amplio; esta aplicación solo implementa consultas de campañas.
+
+## Seguimiento de la agencia
+
+El checklist admite etapa, estado, responsable, fecha comprometida y una referencia textual a la evidencia. «Esperando al cliente» identifica dependencias externas. Las gestiones internas solo son visibles para la agencia; las actividades compartidas se identifican por separado en el historial, que muestra hasta 100 registros recientes por cliente.
+
+El panel utiliza resultados guardados de Google Ads. «Actualizar resultados» consulta la cuenta y renueva esos datos; no hay actualización programada ni envío automático de alertas. Las alertas de campañas pausadas o no aptas, consumo de al menos el 80 % del presupuesto mensual registrado y variación de conversiones de al menos el 20 % se calculan solo con datos recientes. Los períodos excluyen el día parcial actual. Sin un presupuesto registrado no se genera alerta de presupuesto; si la consulta de estados falla se indica que no están disponibles.
 
 ## Configuración de seguridad
 
