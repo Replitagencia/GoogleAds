@@ -72,11 +72,13 @@ export default function Portal({
   clientName,
   isAdmin,
   userEmail,
+  previewMode = false,
 }: {
   clientId: string;
   clientName: string;
   isAdmin: boolean;
   userEmail: string;
+  previewMode?: boolean;
 }) {
   const api = (path: string) =>
     path +
@@ -401,11 +403,17 @@ export default function Portal({
       )}
       <main>
         <div className="client-context">
-          <a href={isAdmin ? "/admin" : "/"}>
-            {isAdmin ? "← Administrar clientes" : "Mis empresas"}
+          <a href={isAdmin || previewMode ? "/admin" : "/"}>
+            {previewMode
+              ? "← Volver a administración"
+              : isAdmin
+                ? "← Administrar clientes"
+                : "Mis empresas"}
           </a>
-          <span>{clientName}</span>
-          <Logout />
+          <span>
+            {previewMode ? `Vista del cliente · ${clientName}` : clientName}
+          </span>
+          {!previewMode && <Logout />}
         </div>
         <header className="topbar">
           <div>

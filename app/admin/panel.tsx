@@ -98,6 +98,10 @@ export default function AdminPanel({ email }: { email: string }) {
         <span className="eyebrow">TU AGENCIA, CONECTADA</span>
         <h1>Clientes y campañas.</h1>
         <p>Organiza los accesos y acompaña los resultados de cada empresa.</p>
+        <p>
+          Este panel es de la agencia. Cada cliente entra directamente a sus
+          campañas.
+        </p>
       </div>
       {error && (
         <div className="message error" role="alert">
@@ -136,10 +140,21 @@ export default function AdminPanel({ email }: { email: string }) {
                   </div>
                   <div className="client-actions">
                     {c.status === "active" && (
-                      <a className="button primary" href={"/?clientId=" + c.id}>
-                        Abrir cliente
-                        <ArrowRight size={15} />
-                      </a>
+                      <>
+                        <a
+                          className="button primary"
+                          href={"/?clientId=" + c.id + "&preview=client"}
+                        >
+                          Ver como cliente
+                          <ArrowRight size={15} />
+                        </a>
+                        <a
+                          className="text-button"
+                          href={"/?clientId=" + c.id + "&view=connection"}
+                        >
+                          Configurar Google Ads
+                        </a>
+                      </>
                     )}
                     <button
                       className="text-button"

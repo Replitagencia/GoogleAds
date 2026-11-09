@@ -6,21 +6,23 @@ export const dynamic = "force-dynamic";
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ clientId?: string }>;
+  searchParams: Promise<{ clientId?: string; preview?: string }>;
 }) {
   const user = await getPortalUser();
   if (!user) redirect("/login");
-  const { clientId } = await searchParams;
+  const { clientId, preview } = await searchParams;
   if (clientId) {
     try {
       const client = await clientAccess(user, clientId);
+      const previewMode = user.isAdmin && preview === "client";
       return (
         <Portal
-          key={clientId}
+          key={clientId + (previewMode ? ":preview" : "")}
           clientId={clientId}
           clientName={client.name}
-          isAdmin={user.isAdmin}
-          userEmail={user.email}
+          isAdmin={user.isAdmin && !previewMode}
+          userEmail={previewMode ? "Acceso privado del cliente" : user.email}
+          previewMode={previewMode}
         />
       );
     } catch {

@@ -370,6 +370,26 @@ test("administrador puede escribir y ver ambos clientes; CSRF rechazado", async 
     403,
   );
 });
+test("la vista previa muestra el portal del cliente sin ampliar sus permisos", async () => {
+  const page = async (id: string, cookie: string) => {
+    const r = await fetch(`${base}/?clientId=${id}&preview=client`, {
+      headers: { cookie },
+      redirect: "manual",
+    });
+    assert.equal(r.status, 200);
+    return r.text();
+  };
+  const preview = await page(clientA, adminCookie);
+  assert.match(preview, /Vista del cliente/);
+  assert.match(preview, /Volver a administración/);
+  assert.doesNotMatch(preview, /Configurar cuenta/);
+  assert.doesNotMatch(preview, /Conexión Google Ads/);
+  const clientPage = await page(clientA, cookieA);
+  assert.doesNotMatch(clientPage, /Vista del cliente/);
+  assert.doesNotMatch(clientPage, /Volver a administración/);
+  assert.match(await page(clientB, cookieA), /Cliente no disponible/);
+});
+
 test("suspender cliente y usuario revoca el acceso inmediatamente", async () => {
   await request(
     "/api/admin",
