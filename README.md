@@ -8,6 +8,7 @@ Portal independiente de ChatGPT, con Next.js 16, Better Auth y PostgreSQL. El ad
 - Registro público deshabilitado. Invitaciones de un solo uso, almacenadas como hash, con vencimiento de 48 horas; el cliente define su contraseña.
 - Administrador inicial creado mediante una invitación privada desde la consola del servidor. No existe un usuario o contraseña predeterminados.
 - Panel de clientes, invitaciones, suspensión/reactivación de empresas y usuarios.
+- Alta de empresa y primer acceso en una operación. Para empresas existentes, crear accesos adicionales desde su tarjeta. Las activaciones pendientes se distinguen de las cuentas activas; cada persona elige su contraseña mediante el enlace privado de 48 horas.
 - Permisos verificados en el servidor en cada API y página. El rol administrativo se guarda aparte de los campos editables de Better Auth. Los encabezados de ChatGPT no otorgan acceso.
 - Conexiones OAuth de Google por cliente, con estado de un solo uso vinculado al administrador y al cliente. Tokens cifrados con AES-GCM.
 - Dashboard, comparaciones, campañas, conversiones, dispositivos, ubicaciones, palabras clave, búsquedas, anuncios y CSV.

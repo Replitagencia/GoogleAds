@@ -370,6 +370,103 @@ test("administrador puede escribir y ver ambos clientes; CSRF rechazado", async 
     403,
   );
 });
+test("crear cliente y acceso es exclusivo del administrador y no deja empresas si falla", async () => {
+  const count = async () =>
+    Number(
+      (await getPool().query("SELECT count(*) FROM clients")).rows[0].count,
+    );
+  const initial = await count();
+  const body = {
+    action: "create-client-access",
+    name: "Empresa inválida",
+    email: "sin-correo",
+  };
+  assert.equal(
+    (await request("/api/admin", "POST", body, cookieA)).status,
+    403,
+  );
+  assert.equal(
+    (await request("/api/admin", "POST", body, adminCookie)).status,
+    400,
+  );
+  assert.equal(
+    (
+      await request(
+        "/api/admin",
+        "POST",
+        { ...body, email: adminEmail },
+        adminCookie,
+      )
+    ).status,
+    409,
+  );
+  assert.equal(await count(), initial);
+});
+test("un nuevo cliente activa su cuenta y entra solo a sus campañas", async () => {
+  const email = "qa-nuevo@example.test";
+  const created = await request(
+    "/api/admin",
+    "POST",
+    {
+      action: "create-client-access",
+      name: "Cliente nuevo",
+      email,
+      isAdmin: true,
+    },
+    adminCookie,
+  );
+  assert.equal(created.status, 200);
+  const id = created.data.id;
+  const pending = await request("/api/admin", "GET", undefined, adminCookie);
+  assert.ok(
+    pending.data.invitations.some(
+      (i: any) => i.client_id === id && i.email === email,
+    ),
+  );
+  await activate(created.data.url, email);
+  await getPool().query('DELETE FROM "rateLimit"');
+  const cookie = await login(email);
+  const home = await request("/", "GET", undefined, cookie);
+  assert.equal(home.response.headers.get("location"), "/?clientId=" + id);
+  assert.equal(
+    (await request("/api/admin", "GET", undefined, cookie)).status,
+    403,
+  );
+  assert.equal(
+    (
+      await request(
+        `/api/google/status?clientId=${id}`,
+        "GET",
+        undefined,
+        cookie,
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (await request(`/api/report?clientId=${clientA}`, "GET", undefined, cookie))
+      .status,
+    404,
+  );
+  assert.equal(
+    (
+      await request(
+        "/api/admin",
+        "POST",
+        { action: "invite", clientId: id, email },
+        adminCookie,
+      )
+    ).status,
+    409,
+  );
+  const used = await request("/api/admin", "GET", undefined, adminCookie);
+  assert.ok(
+    !used.data.invitations.some(
+      (i: any) => i.client_id === id && i.email === email,
+    ),
+  );
+});
+
 test("la vista previa muestra el portal del cliente sin ampliar sus permisos", async () => {
   const page = async (id: string, cookie: string) => {
     const r = await fetch(`${base}/?clientId=${id}&preview=client`, {

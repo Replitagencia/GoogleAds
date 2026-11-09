@@ -3,55 +3,103 @@ import { hashPassword } from "better-auth/crypto";
 import { getPool } from "../db";
 import type { PortalUser } from "./access";
 import { AccessError } from "./errors";
+import type { PoolClient } from "pg";
 export const tokenHash = (token: string) =>
   createHash("sha256").update(token).digest("hex");
-export async function createInvitation(
+async function issueInvitation(
+  db: PoolClient,
   email: string,
   clientId: string | null,
   actorId: string | null,
   bootstrap = false,
 ) {
+  email = email.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254)
     throw new AccessError("Correo inválido.", 400);
-  email = email.trim().toLowerCase();
-  const token = randomBytes(32).toString("hex"),
-    db = await getPool().connect();
-  try {
-    await db.query("BEGIN");
-    if (bootstrap) {
-      await db.query("SELECT pg_advisory_xact_lock(983541)");
-      const r = await db.query(
-        "SELECT 1 FROM portal_users WHERE is_admin=true",
-      );
-      if (r.rowCount) throw new AccessError("El administrador ya existe.", 409);
-    }
-    if (clientId) {
-      const c = await db.query(
-        "SELECT 1 FROM clients WHERE id=$1 AND status='active'",
-        [clientId],
-      );
-      if (!c.rowCount) throw new AccessError("Cliente no disponible.", 404);
-    }
-    await db.query(
-      "UPDATE invitations SET used_at=now() WHERE email=$1 AND client_id IS NOT DISTINCT FROM $2 AND used_at IS NULL",
+  const token = randomBytes(32).toString("hex");
+  if (bootstrap) {
+    await db.query("SELECT pg_advisory_xact_lock(983541)");
+    const r = await db.query("SELECT 1 FROM portal_users WHERE is_admin=true");
+    if (r.rowCount) throw new AccessError("El administrador ya existe.", 409);
+  }
+  if (clientId) {
+    const c = await db.query(
+      "SELECT 1 FROM clients WHERE id=$1 AND status='active'",
+      [clientId],
+    );
+    if (!c.rowCount) throw new AccessError("Cliente no disponible.", 404);
+    const existing = await db.query(
+      'SELECT p.is_admin, EXISTS (SELECT 1 FROM memberships m WHERE m.user_id=u.id AND m.client_id=$2) AS assigned FROM "user" u JOIN portal_users p ON p.user_id=u.id WHERE lower(u.email)=$1',
       [email, clientId],
     );
-    await db.query(
-      "INSERT INTO invitations(id,token_hash,email,client_id,is_admin,expires_at,created_by) VALUES($1,$2,$3,$4,$5,now()+interval '48 hours',$6)",
-      [randomUUID(), tokenHash(token), email, clientId, bootstrap, actorId],
-    );
-    await db.query(
-      "INSERT INTO audit_log(actor_id,action,client_id) VALUES($1,'invitation.created',$2)",
-      [actorId, clientId],
-    );
+    if (existing.rows[0]?.is_admin)
+      throw new AccessError(
+        "Este correo es de un administrador. Usa el correo del cliente.",
+        409,
+      );
+    if (existing.rows[0]?.assigned)
+      throw new AccessError("Este correo ya tiene acceso a esta empresa.", 409);
+  }
+  await db.query(
+    "UPDATE invitations SET used_at=now() WHERE email=$1 AND client_id IS NOT DISTINCT FROM $2 AND used_at IS NULL",
+    [email, clientId],
+  );
+  await db.query(
+    "INSERT INTO invitations(id,token_hash,email,client_id,is_admin,expires_at,created_by) VALUES($1,$2,$3,$4,$5,now()+interval '48 hours',$6)",
+    [randomUUID(), tokenHash(token), email, clientId, bootstrap, actorId],
+  );
+  await db.query(
+    "INSERT INTO audit_log(actor_id,action,client_id) VALUES($1,'invitation.created',$2)",
+    [actorId, clientId],
+  );
+  return `${process.env.SITE_URL}/activate?token=${token}`;
+}
+async function invitationTransaction<T>(
+  operation: (db: PoolClient) => Promise<T>,
+) {
+  const db = await getPool().connect();
+  try {
+    await db.query("BEGIN");
+    const result = await operation(db);
     await db.query("COMMIT");
-    return `${process.env.SITE_URL}/activate?token=${token}`;
+    return result;
   } catch (e) {
     await db.query("ROLLBACK");
     throw e;
   } finally {
     db.release();
   }
+}
+export function createInvitation(
+  email: string,
+  clientId: string | null,
+  actorId: string | null,
+  bootstrap = false,
+) {
+  return invitationTransaction((db) =>
+    issueInvitation(db, email, clientId, actorId, bootstrap),
+  );
+}
+export function createClientWithAccess(
+  name: string,
+  email: string,
+  actorId: string,
+) {
+  if (!name.trim() || name.length > 100)
+    throw new AccessError("Nombre de empresa inválido.", 400);
+  return invitationTransaction(async (db) => {
+    const id = randomUUID();
+    await db.query("INSERT INTO clients(id,name) VALUES($1,$2)", [
+      id,
+      name.trim(),
+    ]);
+    const url = await issueInvitation(db, email, id, actorId);
+    await db.query(
+      "INSERT INTO audit_log(actor_id,action,client_id) VALUES($1,'client.created',$2)",
+      [actorId, id],
+    );
+    return { id, url };
+  });
 }
 export async function invitationInfo(token: string) {
   if (!/^[a-f0-9]{64}$/.test(token))

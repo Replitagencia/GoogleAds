@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FlaskConical, Plus, ArrowRight, Users, Link2 } from "lucide-react";
 import Logout from "../logout";
 type Data = {
@@ -27,11 +27,20 @@ type Data = {
 export default function AdminPanel({ email }: { email: string }) {
   const [data, setData] = useState<Data | null>(null),
     [name, setName] = useState(""),
+    [newEmail, setNewEmail] = useState(""),
     [inviteEmail, setInviteEmail] = useState(""),
     [client, setClient] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [link, setLink] = useState("");
+    [link, setLink] = useState(""),
+    [linkEmail, setLinkEmail] = useState(""),
+    [linkCompany, setLinkCompany] = useState(""),
+    [copied, setCopied] = useState(false);
+  const inviteEmailInput = useRef<HTMLInputElement>(null);
+  const accessResult = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (link) accessResult.current?.focus();
+  }, [link]);
   async function load() {
     const r = await fetch("/api/admin");
     if (r.status === 401) {
@@ -55,6 +64,8 @@ export default function AdminPanel({ email }: { email: string }) {
   async function action(body: Record<string, unknown>) {
     setBusy(true);
     setError("");
+    setCopied(false);
+    setLink("");
     try {
       const r = await fetch("/api/admin", {
           method: "POST",
@@ -63,9 +74,20 @@ export default function AdminPanel({ email }: { email: string }) {
         }),
         d = await r.json();
       if (!r.ok) throw new Error(d.error);
-      if (d.url) setLink(d.url);
-      if (body.action === "create-client") {
+      if (d.url) {
+        setLink(d.url);
+        setLinkEmail(String(body.email).trim().toLowerCase());
+        setLinkCompany(
+          String(
+            body.name ||
+              data?.clients.find((c) => c.id === body.clientId)?.name ||
+              "",
+          ),
+        );
+      }
+      if (body.action === "create-client-access") {
         setName("");
+        setNewEmail("");
         setClient(d.id);
       }
       await load();
@@ -137,10 +159,36 @@ export default function AdminPanel({ email }: { email: string }) {
                         ? `Google Ads · ${c.customer_id} · ${c.account_name}`
                         : "Google Ads pendiente de conexión"}
                     </p>
+                    <p>
+                      Usuarios:{" "}
+                      {
+                        data.users.filter((u) => u.clients.includes(c.id))
+                          .length
+                      }
+                      {" · "}Activaciones pendientes:{" "}
+                      {
+                        data.invitations.filter((i) => i.client_id === c.id)
+                          .length
+                      }
+                    </p>
                   </div>
                   <div className="client-actions">
                     {c.status === "active" && (
                       <>
+                        <button
+                          type="button"
+                          className="text-button"
+                          disabled={busy}
+                          onClick={() => {
+                            setClient(c.id);
+                            setInviteEmail("");
+                            setLink("");
+                            setError("");
+                            inviteEmailInput.current?.focus();
+                          }}
+                        >
+                          Crear acceso de cliente
+                        </button>
                         <a
                           className="button primary"
                           href={"/?clientId=" + c.id + "&preview=client"}
@@ -177,14 +225,56 @@ export default function AdminPanel({ email }: { email: string }) {
           </div>
         </section>
         <aside className="panel">
+          {link && (
+            <div
+              className="invite-result"
+              role="status"
+              tabIndex={-1}
+              ref={accessResult}
+            >
+              <strong>Acceso pendiente de activación</strong>
+              <p>
+                {linkCompany} · {linkEmail}
+              </p>
+              <p>
+                Comparte este enlace con esa persona. Elegirá su contraseña y
+                entrará a sus campañas. Vence en 48 horas. No se ha enviado un
+                correo.
+              </p>
+              <input
+                aria-label="Enlace de activación"
+                readOnly
+                value={link}
+                onFocus={(e) => e.target.select()}
+              />
+              <button
+                type="button"
+                className="text-button"
+                onClick={() =>
+                  navigator.clipboard
+                    .writeText(link)
+                    .then(() => setCopied(true))
+                    .catch(() =>
+                      setError("Selecciona y copia el enlace manualmente."),
+                    )
+                }
+              >
+                {copied ? "Enlace copiado" : "Copiar enlace de activación"}
+              </button>
+            </div>
+          )}
           <form
             className="admin-form"
             onSubmit={(e) => {
               e.preventDefault();
-              void action({ action: "create-client", name });
+              void action({
+                action: "create-client-access",
+                name,
+                email: newEmail,
+              });
             }}
           >
-            <h2>Crear un cliente</h2>
+            <h2>Nuevo cliente y su acceso</h2>
             <label htmlFor="client-name">Nombre de la empresa</label>
             <input
               id="client-name"
@@ -194,10 +284,26 @@ export default function AdminPanel({ email }: { email: string }) {
               onChange={(e) => setName(e.target.value)}
               placeholder="Ej.: Eticsa"
             />
+            <label htmlFor="new-client-email">
+              Correo de acceso del cliente
+            </label>
+            <input
+              id="new-client-email"
+              type="email"
+              required
+              maxLength={254}
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              placeholder="cliente@empresa.cl"
+            />
             <button className="button primary" disabled={busy}>
               <Plus size={16} />
-              Crear espacio
+              Crear cliente y acceso
             </button>
+            <small>
+              El cliente elegirá su contraseña y solo verá las campañas de su
+              empresa.
+            </small>
           </form>
           <form
             className="admin-form"
@@ -211,7 +317,7 @@ export default function AdminPanel({ email }: { email: string }) {
               });
             }}
           >
-            <h2>Invitar a un usuario</h2>
+            <h2>Dar acceso a un cliente existente</h2>
             <label htmlFor="invite-client">Cliente</label>
             <select
               id="invite-client"
@@ -228,57 +334,31 @@ export default function AdminPanel({ email }: { email: string }) {
                   </option>
                 ))}
             </select>
-            <label htmlFor="invite-email">Correo del usuario</label>
+            <label htmlFor="invite-email">Correo de acceso del cliente</label>
             <input
               id="invite-email"
               type="email"
               required
+              maxLength={254}
+              ref={inviteEmailInput}
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
             />
             <button className="button primary" disabled={busy || !client}>
               <Link2 size={16} />
-              Crear invitación
+              Crear acceso
             </button>
             <small>
               El usuario elegirá su contraseña. El enlace vence en 48 horas y
               permite activar el acceso una sola vez.
             </small>
-            {link && (
-              <div className="invite-result" role="status">
-                <strong>Invitación creada</strong>
-                <p>
-                  Compártela únicamente con la persona invitada. No se ha
-                  enviado un correo.
-                </p>
-                <input
-                  aria-label="Enlace de invitación"
-                  readOnly
-                  value={link}
-                  onFocus={(e) => e.target.select()}
-                />
-                <button
-                  type="button"
-                  className="text-button"
-                  onClick={() =>
-                    navigator.clipboard
-                      .writeText(link)
-                      .catch(() =>
-                        setError("Selecciona y copia el enlace manualmente."),
-                      )
-                  }
-                >
-                  Copiar enlace
-                </button>
-              </div>
-            )}
           </form>
         </aside>
       </div>
       <section className="panel admin-section">
         <div className="panel-heading">
           <div>
-            <h2>Usuarios de clientes</h2>
+            <h2>Cuentas de clientes</h2>
             <p>Los accesos suspendidos dejan de funcionar inmediatamente.</p>
           </div>
         </div>
@@ -330,7 +410,8 @@ export default function AdminPanel({ email }: { email: string }) {
           </table>
           {!data?.users.length && (
             <p className="insight-empty">
-              Los usuarios aparecerán aquí cuando acepten su invitación.
+              Las cuentas aparecerán aquí cuando el cliente active su acceso y
+              elija su contraseña.
             </p>
           )}
         </div>
@@ -338,7 +419,7 @@ export default function AdminPanel({ email }: { email: string }) {
       {!!data?.invitations.length && (
         <section className="panel admin-section">
           <div className="panel-heading">
-            <h2>Invitaciones pendientes</h2>
+            <h2>Accesos pendientes de activación</h2>
           </div>
           <div className="table-scroll">
             <table>

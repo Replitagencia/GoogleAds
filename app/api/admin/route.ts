@@ -1,6 +1,6 @@
 import { getPool } from "@/db";
 import { requireAdmin, apiError, AccessError } from "@/lib/access";
-import { createInvitation } from "@/lib/invitations";
+import { createInvitation, createClientWithAccess } from "@/lib/invitations";
 import { sameOrigin, json } from "@/lib/google-ads";
 import { randomUUID } from "node:crypto";
 export async function GET(request: Request) {
@@ -32,6 +32,14 @@ export async function POST(request: Request) {
     if (!sameOrigin(request))
       throw new AccessError("Origen no permitido.", 403);
     const body = await request.json();
+    if (body.action === "create-client-access") {
+      if (typeof body.name !== "string" || typeof body.email !== "string")
+        throw new AccessError("Empresa y correo del cliente requeridos.", 400);
+      return json({
+        ok: true,
+        ...(await createClientWithAccess(body.name, body.email, user.userId)),
+      });
+    }
     if (body.action === "create-client") {
       if (
         typeof body.name !== "string" ||
