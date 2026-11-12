@@ -154,6 +154,25 @@ h3 {
   border-radius: 7px;
   font-size: 10px;
 }
+.workspace-client-logo {
+  display: block;
+  position: relative;
+  flex: 0 0 72px;
+  width: 72px;
+  height: 31px;
+  overflow: hidden;
+  background: white;
+  border-radius: 5px;
+}
+.workspace-client-logo img {
+  position: absolute;
+  width: 72px;
+  height: 72px;
+  max-width: none;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+}
 .workspace > svg {
   color: #a1a8b5;
 }

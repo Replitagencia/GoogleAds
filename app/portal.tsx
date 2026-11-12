@@ -346,7 +346,13 @@ export default function Portal({
           </span>
         </a>
         <div className="workspace">
-          <span className="workspace-icon">AL</span>
+          {clientId === "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519" ? (
+            <span className="workspace-client-logo">
+              <img src="/client-logos/eticsa.png" alt="Logo de Eticsa" />
+            </span>
+          ) : (
+            <span className="workspace-icon">AL</span>
+          )}
           <div>
             {clientName}
             <small>Espacio de cliente</small>
