@@ -5,7 +5,7 @@ import type { Breakdown, Metrics } from "./reporting";
 // Report content comes only from the authorized, seven-day Google Ads response.
 export function saveWeeklyPdf(report: Report, clientName: string) {
   if (report.source !== "google" || report.days !== 7 || !report.insights)
-    throw new Error("No hay resultados reales semanales disponibles.");
+    throw new Error("No hay resultados reales del período disponibles.");
   const info = report.insights,
     p = info.period;
   const pdf = new jsPDF({
@@ -63,7 +63,7 @@ export function saveWeeklyPdf(report: Report, clientName: string) {
     pdf.setDrawColor(220, 227, 235);
     pdf.line(10, 156, 287, 156);
     text(
-      `${clientName.toUpperCase()} / INFORME SEMANAL GOOGLE ADS`,
+      `${clientName.toUpperCase()} / REPORTE GOOGLE ADS`,
       11,
       161,
       7,
@@ -123,15 +123,8 @@ export function saveWeeklyPdf(report: Report, clientName: string) {
     [255, 255, 255],
     "bold",
   );
-  text("INFORME SEMANAL  ·  GOOGLE ADS", 20, 50, 9, [76, 235, 177], "bold");
-  text(
-    "Resultados semanales de Google Ads",
-    20,
-    62,
-    24,
-    [255, 255, 255],
-    "bold",
-  );
+  text("REPORTE  ·  GOOGLE ADS", 20, 50, 9, [76, 235, 177], "bold");
+  text("Resultados de Google Ads", 20, 62, 24, [255, 255, 255], "bold");
   text(
     "Evolución de la inversión, las impresiones, los clics y las búsquedas.",
     20,
@@ -166,7 +159,7 @@ export function saveWeeklyPdf(report: Report, clientName: string) {
   );
   page(
     "Resumen ejecutivo",
-    "Desempeño de la semana",
+    "Desempeño del período",
     `${current} · Comparado con ${previous}`,
     2,
   );
@@ -217,7 +210,7 @@ export function saveWeeklyPdf(report: Report, clientName: string) {
   );
   banner();
   page(
-    "Comparación semanal",
+    "Comparación de períodos",
     "Impresiones, clics e inversión",
     `Dos períodos equivalentes de 7 días completos`,
     3,
@@ -257,7 +250,7 @@ export function saveWeeklyPdf(report: Report, clientName: string) {
   );
   banner();
   page(
-    "Consultas de la semana",
+    "Consultas del período",
     "Dónde aparecen los anuncios",
     `Búsquedas identificadas por Google · ${current}`,
     4,
@@ -305,7 +298,7 @@ export function saveWeeklyPdf(report: Report, clientName: string) {
   );
   banner();
   page(
-    "Búsquedas de la semana",
+    "Búsquedas del período",
     "Búsquedas con más clics",
     `Comparación de términos identificados en cada período`,
     5,
@@ -359,7 +352,7 @@ export function saveWeeklyPdf(report: Report, clientName: string) {
   banner();
   page(
     "Lectura de resultados",
-    "Conclusión de la semana",
+    "Conclusión del período",
     `Resumen basado en los datos disponibles de Google Ads`,
     6,
   );
@@ -385,5 +378,5 @@ export function saveWeeklyPdf(report: Report, clientName: string) {
     [93, 111, 135],
   );
   banner();
-  pdf.save(`Informe-semanal-Google-Ads-${p.start}-${p.end}.pdf`);
+  pdf.save(`Reporte-Google-Ads-${p.start}-${p.end}.pdf`);
 }

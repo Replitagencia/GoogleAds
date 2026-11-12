@@ -54,7 +54,7 @@ La prueba de Google sigue siendo independiente de la autenticación SaaS. Si el 
 
 ## Seguimiento de la agencia
 
-El portal ofrece un informe semanal en PDF, generado en el navegador con los últimos siete días completos de la cuenta y los siete días anteriores. La fecha de consulta, la moneda y la zona horaria proceden del informe de Google Ads. Las búsquedas reflejan solo los términos identificados y disponibles, y una ausencia en la muestra anterior no se interpreta como cero. No se generan conclusiones causales ni gestiones ficticias. La descarga CSV continúa disponible por separado.
+El portal ofrece un reporte en PDF, generado en el navegador con los últimos siete días completos de la cuenta y los siete días anteriores. La fecha de consulta, la moneda y la zona horaria proceden del informe de Google Ads. Las búsquedas reflejan solo los términos identificados y disponibles, y una ausencia en la muestra anterior no se interpreta como cero. No se generan conclusiones causales ni gestiones ficticias. La descarga CSV continúa disponible por separado.
 
 El checklist admite etapa, estado, responsable, fecha comprometida y una referencia textual a la evidencia. «Esperando al cliente» identifica dependencias externas. Las gestiones internas solo son visibles para la agencia; las actividades compartidas se identifican por separado en el historial, que muestra hasta 100 registros recientes por cliente.
 

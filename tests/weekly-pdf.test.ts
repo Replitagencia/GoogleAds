@@ -6,11 +6,11 @@ import path from "node:path";
 import { demoReport } from "../lib/demo";
 import { saveWeeklyPdf } from "../lib/weekly-pdf";
 
-test("el informe solo acepta resultados reales semanales y crea seis páginas", async () => {
+test("el informe solo acepta resultados reales del período y crea seis páginas", async () => {
   const report = demoReport(7);
   assert.throws(
     () => saveWeeklyPdf(report, "Cliente de prueba"),
-    /resultados reales semanales/,
+    /resultados reales del período/,
   );
   report.source = "google";
   report.fetchedAt = "2026-11-08T12:00:00Z";
@@ -21,10 +21,7 @@ test("el informe solo acepta resultados reales semanales y crea seis páginas", 
     saveWeeklyPdf(report, "Cliente de prueba");
     const period = report.insights!.period;
     const pdf = await readFile(
-      path.join(
-        dir,
-        `Informe-semanal-Google-Ads-${period.start}-${period.end}.pdf`,
-      ),
+      path.join(dir, `Reporte-Google-Ads-${period.start}-${period.end}.pdf`),
     );
     const content = pdf.toString("latin1");
     assert.ok(content.startsWith("%PDF-"));

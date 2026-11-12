@@ -171,9 +171,7 @@ export default function Portal({
       const response = await fetch(api("/api/report?days=7"));
       const data = (await response.json()) as Report & { error?: string };
       if (!response.ok)
-        throw new Error(
-          data.error || "No se pudo consultar el informe semanal.",
-        );
+        throw new Error(data.error || "No se pudo consultar el reporte.");
       const { saveWeeklyPdf } = await import("@/lib/weekly-pdf");
       saveWeeklyPdf(data, clientName);
     } catch (e) {
@@ -377,7 +375,7 @@ export default function Portal({
             disabled={pdfBusy || !status?.customerId}
           >
             <ArrowDownToLine size={18} />
-            {pdfBusy ? "Preparando PDF…" : "Descargar informe semanal PDF"}
+            {pdfBusy ? "Preparando PDF…" : "Descargar reporte"}
           </button>
           <button onClick={download}>
             <ArrowDownToLine size={18} />
@@ -510,7 +508,7 @@ export default function Portal({
                 disabled={pdfBusy || !status?.customerId}
               >
                 <ArrowDownToLine size={16} />
-                {pdfBusy ? "Preparando PDF…" : "Informe semanal PDF"}
+                {pdfBusy ? "Preparando PDF…" : "Descargar reporte"}
               </button>
             )}
           </div>
