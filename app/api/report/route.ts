@@ -76,6 +76,7 @@ export async function GET(request: Request) {
       actionRows,
       conversionRows,
       campaignStatusRows,
+      previousTermRows,
     ] = await Promise.all([
       optional(
         "devices",
@@ -109,6 +110,12 @@ export async function GET(request: Request) {
         "campaignStatus",
         "SELECT campaign.id, campaign.name, campaign.status, campaign.primary_status FROM campaign WHERE campaign.status != 'REMOVED'",
       ),
+      days === 7
+        ? optional(
+            "previousTerms",
+            `SELECT search_term_view.resource_name, search_term_view.search_term, campaign.name, ${fields} FROM search_term_view WHERE segments.date BETWEEN '${period.previousStart}' AND '${period.previousEnd}' AND metrics.impressions > 0 ORDER BY metrics.clicks DESC LIMIT 100`,
+          )
+        : Promise.resolve([]),
     ]);
     const geoNames = new Map<string, string>();
     const geoIds = [
@@ -241,6 +248,12 @@ export async function GET(request: Request) {
           ...metrics(r),
         })),
         terms: termRows.map((r) => ({
+          id: r.searchTermView.resourceName,
+          label: r.searchTermView.searchTerm,
+          detail: r.campaign.name,
+          ...metrics(r),
+        })),
+        previousTerms: previousTermRows.map((r) => ({
           id: r.searchTermView.resourceName,
           label: r.searchTermView.searchTerm,
           detail: r.campaign.name,

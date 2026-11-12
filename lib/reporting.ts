@@ -1,11 +1,110 @@
-export type Metrics = {cost:number;clicks:number;impressions:number;conversions:number};
-export const zero = ():Metrics => ({cost:0,clicks:0,impressions:0,conversions:0});
-export function sum(rows:Metrics[]):Metrics {return rows.reduce((a,r)=>({cost:a.cost+r.cost,clicks:a.clicks+r.clicks,impressions:a.impressions+r.impressions,conversions:a.conversions+r.conversions}),zero());}
-export function dateInZone(now:Date,timeZone:string){const p=new Intl.DateTimeFormat('en-CA',{timeZone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);return ['year','month','day'].map(k=>p.find(v=>v.type===k)!.value).join('-');}
-export function shiftDate(date:string,days:number){const d=new Date(date+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10);}
-export function periods(days:number,timeZone:string,now=new Date()) {const today=dateInZone(now,timeZone),end=shiftDate(today,-1),start=shiftDate(today,-days),previousStart=shiftDate(today,-days*2),previousEnd=shiftDate(start,-1),month=today.slice(0,7),monthStart=month+'-01';return {start,end,previousStart,previousEnd,month,monthStart,today,elapsedDays:Number(today.slice(8))-1,monthDays:new Date(Date.UTC(Number(today.slice(0,4)),Number(today.slice(5,7)),0)).getUTCDate(),historyStart:previousStart<monthStart?previousStart:monthStart};}
-export function change(current:number,previous:number):number|null {return previous===0?null:(current-previous)/Math.abs(previous)*100;}
-export type Breakdown = Metrics & {id:string;label:string;detail?:string};
-export type Conversion = {id:string;name:string;category:string;status:string;primary:boolean;conversions:number;allConversions:number};
-export type Insights = {period:ReturnType<typeof periods>;totals:Metrics;previous:Metrics;monthCost:number;devices:Breakdown[];locations:Breakdown[];keywords:Breakdown[];terms:Breakdown[];ads:Breakdown[];conversions:Conversion[];unavailable:string[]};
-export function measurementMessage(conversions:Conversion[],unavailable:string[]){if(unavailable.includes('conversions'))return 'No se pudo consultar la configuración de conversiones. No podemos evaluar la medición.';const active=conversions.filter(c=>c.status==='ENABLED');if(!active.length)return 'No se encontraron acciones de conversión habilitadas en esta cuenta. Revisa la configuración de medición y si las conversiones se administran desde otra cuenta.';if(unavailable.includes('conversionMetrics'))return 'Hay acciones configuradas, pero no pudimos consultar sus resultados. No se muestran como cero.';if(!conversions.some(c=>c.allConversions>0))return 'Hay acciones configuradas, pero Google no registra conversiones atribuidas en este período. Esto no confirma que las etiquetas funcionen ni que no hayan llegado contactos.';return 'Google registra conversiones en este período. Son acciones atribuidas a anuncios; no necesariamente personas únicas ni ventas confirmadas.';}
+export type Metrics = {
+  cost: number;
+  clicks: number;
+  impressions: number;
+  conversions: number;
+};
+export const zero = (): Metrics => ({
+  cost: 0,
+  clicks: 0,
+  impressions: 0,
+  conversions: 0,
+});
+export function sum(rows: Metrics[]): Metrics {
+  return rows.reduce(
+    (a, r) => ({
+      cost: a.cost + r.cost,
+      clicks: a.clicks + r.clicks,
+      impressions: a.impressions + r.impressions,
+      conversions: a.conversions + r.conversions,
+    }),
+    zero(),
+  );
+}
+export function dateInZone(now: Date, timeZone: string) {
+  const p = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  return ["year", "month", "day"]
+    .map((k) => p.find((v) => v.type === k)!.value)
+    .join("-");
+}
+export function shiftDate(date: string, days: number) {
+  const d = new Date(date + "T12:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+export function periods(days: number, timeZone: string, now = new Date()) {
+  const today = dateInZone(now, timeZone),
+    end = shiftDate(today, -1),
+    start = shiftDate(today, -days),
+    previousStart = shiftDate(today, -days * 2),
+    previousEnd = shiftDate(start, -1),
+    month = today.slice(0, 7),
+    monthStart = month + "-01";
+  return {
+    start,
+    end,
+    previousStart,
+    previousEnd,
+    month,
+    monthStart,
+    today,
+    elapsedDays: Number(today.slice(8)) - 1,
+    monthDays: new Date(
+      Date.UTC(Number(today.slice(0, 4)), Number(today.slice(5, 7)), 0),
+    ).getUTCDate(),
+    historyStart: previousStart < monthStart ? previousStart : monthStart,
+  };
+}
+export function change(current: number, previous: number): number | null {
+  return previous === 0
+    ? null
+    : ((current - previous) / Math.abs(previous)) * 100;
+}
+export type Breakdown = Metrics & {
+  id: string;
+  label: string;
+  detail?: string;
+};
+export type Conversion = {
+  id: string;
+  name: string;
+  category: string;
+  status: string;
+  primary: boolean;
+  conversions: number;
+  allConversions: number;
+};
+export type Insights = {
+  period: ReturnType<typeof periods>;
+  totals: Metrics;
+  previous: Metrics;
+  monthCost: number;
+  devices: Breakdown[];
+  locations: Breakdown[];
+  keywords: Breakdown[];
+  terms: Breakdown[];
+  previousTerms?: Breakdown[];
+  ads: Breakdown[];
+  conversions: Conversion[];
+  unavailable: string[];
+};
+export function measurementMessage(
+  conversions: Conversion[],
+  unavailable: string[],
+) {
+  if (unavailable.includes("conversions"))
+    return "No se pudo consultar la configuración de conversiones. No podemos evaluar la medición.";
+  const active = conversions.filter((c) => c.status === "ENABLED");
+  if (!active.length)
+    return "No se encontraron acciones de conversión habilitadas en esta cuenta. Revisa la configuración de medición y si las conversiones se administran desde otra cuenta.";
+  if (unavailable.includes("conversionMetrics"))
+    return "Hay acciones configuradas, pero no pudimos consultar sus resultados. No se muestran como cero.";
+  if (!conversions.some((c) => c.allConversions > 0))
+    return "Hay acciones configuradas, pero Google no registra conversiones atribuidas en este período. Esto no confirma que las etiquetas funcionen ni que no hayan llegado contactos.";
+  return "Google registra conversiones en este período. Son acciones atribuidas a anuncios; no necesariamente personas únicas ni ventas confirmadas.";
+}

@@ -54,6 +54,8 @@ La prueba de Google sigue siendo independiente de la autenticación SaaS. Si el 
 
 ## Seguimiento de la agencia
 
+El portal ofrece un informe semanal en PDF, generado en el navegador con los últimos siete días completos de la cuenta y los siete días anteriores. La fecha de consulta, la moneda y la zona horaria proceden del informe de Google Ads. Las búsquedas reflejan solo los términos identificados y disponibles, y una ausencia en la muestra anterior no se interpreta como cero. No se generan conclusiones causales ni gestiones ficticias. La descarga CSV continúa disponible por separado.
+
 El checklist admite etapa, estado, responsable, fecha comprometida y una referencia textual a la evidencia. «Esperando al cliente» identifica dependencias externas. Las gestiones internas solo son visibles para la agencia; las actividades compartidas se identifican por separado en el historial, que muestra hasta 100 registros recientes por cliente.
 
 El panel utiliza resultados guardados de Google Ads. «Actualizar resultados» consulta la cuenta y renueva esos datos; no hay actualización programada ni envío automático de alertas. Las alertas de campañas pausadas o no aptas, consumo de al menos el 80 % del presupuesto mensual registrado y variación de conversiones de al menos el 20 % se calculan solo con datos recientes. Los períodos excluyen el día parcial actual. Sin un presupuesto registrado no se genera alerta de presupuesto; si la consulta de estados falla se indica que no están disponibles.

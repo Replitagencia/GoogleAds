@@ -91,6 +91,7 @@ export default function Portal({
     [status, setStatus] = useState<Status | null>(null),
     [live, setLive] = useState<Report | null>(null),
     [busy, setBusy] = useState(false),
+    [pdfBusy, setPdfBusy] = useState(false),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [query, setQuery] = useState(""),
@@ -161,6 +162,24 @@ export default function Portal({
         setError(e instanceof Error ? e.message : "Error de conexión.");
     } finally {
       if (id === requestId.current) setBusy(false);
+    }
+  }
+  async function downloadWeeklyPdf() {
+    setPdfBusy(true);
+    setError("");
+    try {
+      const response = await fetch(api("/api/report?days=7"));
+      const data = (await response.json()) as Report & { error?: string };
+      if (!response.ok)
+        throw new Error(
+          data.error || "No se pudo consultar el informe semanal.",
+        );
+      const { saveWeeklyPdf } = await import("@/lib/weekly-pdf");
+      saveWeeklyPdf(data, clientName);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo generar el PDF.");
+    } finally {
+      setPdfBusy(false);
     }
   }
   useEffect(() => {
@@ -353,9 +372,16 @@ export default function Portal({
             <Megaphone size={18} />
             Campañas<span className="nav-count">{report.campaigns.length}</span>
           </button>
+          <button
+            onClick={downloadWeeklyPdf}
+            disabled={pdfBusy || !status?.customerId}
+          >
+            <ArrowDownToLine size={18} />
+            {pdfBusy ? "Preparando PDF…" : "Descargar informe semanal PDF"}
+          </button>
           <button onClick={download}>
             <ArrowDownToLine size={18} />
-            Descargar reporte
+            Descargar datos CSV
           </button>
           <a
             className="ticket-nav-link"
@@ -478,9 +504,13 @@ export default function Portal({
               </p>
             </div>
             {view !== "connection" && (
-              <button className="button secondary export" onClick={download}>
+              <button
+                className="button secondary export"
+                onClick={downloadWeeklyPdf}
+                disabled={pdfBusy || !status?.customerId}
+              >
                 <ArrowDownToLine size={16} />
-                Exportar reporte
+                {pdfBusy ? "Preparando PDF…" : "Informe semanal PDF"}
               </button>
             )}
           </div>
