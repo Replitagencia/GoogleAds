@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { FlaskConical, ArrowRight, ShieldCheck } from "lucide-react";
+import { ArrowRight, ShieldCheck } from "lucide-react";
 import { authClient } from "./auth-client";
 export default function AuthForm({
   mode,
@@ -115,11 +115,12 @@ export default function AuthForm({
     <div className="auth-layout">
       <section className="auth-story">
         <a className="brand" href="/login">
-          <span className="brand-icon">
-            <FlaskConical size={24} />
-          </span>
-          <span>
-            Agencia<span className="brand-light">Labs</span>
+          <span className="brand-lockup">
+            <img
+              className="brand-logo"
+              src="/branding/agencialabs.jpg"
+              alt="AgenciaLabs.cl"
+            />
             <small>
               {agency ? "ADMINISTRACIÓN DE LA AGENCIA" : "PORTAL DE CLIENTES"}
             </small>

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { FlaskConical, Plus, ArrowRight, Users, Link2 } from "lucide-react";
+import { Plus, ArrowRight, Users, Link2 } from "lucide-react";
 import Logout from "../logout";
 import { dateInZone } from "@/lib/reporting";
 type Data = {
@@ -501,11 +501,12 @@ export default function AdminPanel({ email }: { email: string }) {
     <div className="admin-page">
       <header className="admin-header">
         <a className="brand" href="/admin">
-          <span className="brand-icon">
-            <FlaskConical size={24} />
-          </span>
-          <span>
-            Agencia<span className="brand-light">Labs</span>
+          <span className="brand-lockup">
+            <img
+              className="brand-logo"
+              src="/branding/agencialabs.jpg"
+              alt="AgenciaLabs.cl"
+            />
             <small>ADMINISTRACIÓN</small>
           </span>
         </a>

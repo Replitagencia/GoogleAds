@@ -108,6 +108,19 @@ h3 {
 .brand-light {
   font-weight: 420;
 }
+.brand-lockup {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.brand-logo {
+  display: block;
+  width: 165px;
+  max-width: 100%;
+  height: auto;
+  background: white;
+  border-radius: 4px;
+}
 .brand small {
   font-size: 8px;
   letter-spacing: 2px;

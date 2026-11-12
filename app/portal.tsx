@@ -337,11 +337,12 @@ export default function Portal({
     <div className="app-shell">
       <aside className={`sidebar ${menu ? "open" : ""}`}>
         <a href="/" className="brand">
-          <span className="brand-icon">
-            <FlaskConical size={23} />
-          </span>
-          <span>
-            Agencia<span className="brand-light">Labs</span>
+          <span className="brand-lockup">
+            <img
+              className="brand-logo"
+              src="/branding/agencialabs.jpg"
+              alt="AgenciaLabs.cl"
+            />
             <small>PORTAL DE CLIENTES</small>
           </span>
         </a>
