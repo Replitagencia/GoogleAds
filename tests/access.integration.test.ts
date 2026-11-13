@@ -223,7 +223,7 @@ test("la vista consolidada usa una caché separada y respeta los permisos", asyn
     customer = "3213724556",
     now = Date.now();
   const period = periods(30, "America/Santiago");
-  const key = `selected-v1:${id}:${customer}:${now}:30:${period.today}`;
+  const key = `grouped-v2:${id}:${customer}:${now}:30:${period.today}`;
   const fixture = {
     ...demoReport(30),
     source: "google",
