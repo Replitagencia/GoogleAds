@@ -168,7 +168,13 @@ export default function Portal({
     setPdfBusy(true);
     setError("");
     try {
-      const response = await fetch(api("/api/report?days=7"));
+      const response = await fetch(
+        api(
+          clientId === "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519"
+            ? "/api/report/eticsa"
+            : "/api/report?days=7",
+        ),
+      );
       const data = (await response.json()) as Report & { error?: string };
       if (!response.ok)
         throw new Error(data.error || "No se pudo consultar el reporte.");

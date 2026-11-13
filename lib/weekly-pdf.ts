@@ -132,6 +132,14 @@ export function saveWeeklyPdf(report: Report, clientName: string) {
     11,
     [178, 218, 214],
   );
+  if (report.scopeLabel)
+    text(
+      `Campañas incluidas: ${report.scopeLabel}`,
+      20,
+      81,
+      9,
+      [214, 229, 240],
+    );
   [
     [number(info.totals.impressions), "IMPRESIONES"],
     [number(info.totals.clicks), "CLICS"],

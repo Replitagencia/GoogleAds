@@ -13,6 +13,7 @@ test("el informe solo acepta resultados reales del período y crea seis páginas
     /resultados reales del período/,
   );
   report.source = "google";
+  report.scopeLabel = "Busqueda de prueba + Pmax de prueba";
   report.fetchedAt = "2026-11-08T12:00:00Z";
   const previousDir = process.cwd();
   const dir = await mkdtemp(path.join(tmpdir(), "agencialabs-pdf-test-"));
@@ -28,6 +29,7 @@ test("el informe solo acepta resultados reales del período y crea seis páginas
     assert.equal((content.match(/\/Type \/Page\b/g) || []).length, 6);
     assert.match(content, /Cliente de prueba/i);
     assert.match(content, /Impresiones/);
+    assert.match(content, /Busqueda de prueba \+ Pmax de prueba/);
     assert.match(content, /Búsquedas|B.squedas/);
     assert.doesNotMatch(content, /ETICSA/);
   } finally {

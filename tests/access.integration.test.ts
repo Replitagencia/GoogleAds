@@ -189,6 +189,35 @@ test("sin sesión no se pueden leer datos ni usar encabezados de ChatGPT falsifi
   });
   assert.equal(r.status, 401);
 });
+test("el reporte especial exige acceso al cliente autorizado", async () => {
+  const eticsa = "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519";
+  assert.equal(
+    (await request(`/api/report/eticsa?clientId=${eticsa}`)).status,
+    401,
+  );
+  assert.equal(
+    (
+      await request(
+        `/api/report/eticsa?clientId=${eticsa}`,
+        "GET",
+        undefined,
+        cookieA,
+      )
+    ).status,
+    404,
+  );
+  assert.equal(
+    (
+      await request(
+        `/api/report/eticsa?clientId=${clientA}`,
+        "GET",
+        undefined,
+        cookieA,
+      )
+    ).status,
+    404,
+  );
+});
 test("registro público cerrado e invitaciones de un solo uso", async () => {
   assert.notEqual(
     (
