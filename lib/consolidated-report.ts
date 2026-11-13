@@ -22,3 +22,19 @@ export function aggregateCampaignDays(
   }
   return days;
 }
+
+// Keep every other campaign visible; the search row includes the selected PMax.
+export function mergeCampaignPair<T extends Metrics & { id: string }>(
+  campaigns: T[],
+  primaryId: string,
+  absorbedId: string,
+): T[] {
+  const primary = campaigns.find((c) => c.id === primaryId);
+  const absorbed = campaigns.find((c) => c.id === absorbedId);
+  if (!primary || !absorbed) return campaigns;
+  return campaigns
+    .filter((c) => c.id !== absorbedId)
+    .map((c) =>
+      c.id === primaryId ? { ...c, ...sum([primary, absorbed]) } : c,
+    );
+}

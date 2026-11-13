@@ -6,6 +6,7 @@ import {
   json,
   searchAds,
 } from "@/lib/google-ads";
+import { mergeCampaignPair } from "@/lib/consolidated-report";
 import { getDb } from "@/db";
 import { reportCache } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -47,12 +48,10 @@ export async function GET(request: Request) {
         409,
       );
     const campaignIds = ["23169711798", "23461440880"];
-    const scopeFilter = scoped
-      ? ` AND campaign.id IN (${campaignIds.join(",")})`
-      : "";
+    const scopeFilter = "";
     const days = params.get("days") === "7" ? 7 : 30;
     const period = periods(days, saved.timeZone || "America/Santiago");
-    const cacheId = `${scoped ? "selected-v1" : "v2"}:${clientId}:${saved.customerId}:${saved.updatedAt}:${days}:${period.today}`;
+    const cacheId = `${scoped ? "grouped-v2" : "v2"}:${clientId}:${saved.customerId}:${saved.updatedAt}:${days}:${period.today}`;
     const cached = await getDb()
       .select()
       .from(reportCache)
@@ -75,7 +74,7 @@ export async function GET(request: Request) {
         ),
         scoped
           ? query(
-              `SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type FROM campaign WHERE campaign.id IN (${campaignIds.join(",")})`,
+              `SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type FROM campaign`,
             )
           : Promise.resolve([]),
         scoped && period.elapsedDays > 0
@@ -251,6 +250,27 @@ export async function GET(request: Request) {
         ...sum([old || zero(), metrics(r)]),
       });
     }
+    const campaignList = (
+      scoped
+        ? campaignMeta.filter(
+            (r) =>
+              r.campaign.status !== "REMOVED" ||
+              campaignIds.includes(String(r.campaign.id)),
+          )
+        : campaignRows
+    ).map((r) => ({
+      id: String(r.campaign.id),
+      name: r.campaign.name,
+      status: r.campaign.status,
+      channel: r.campaign.advertisingChannelType,
+      ...metrics(
+        scoped
+          ? campaignRows.find(
+              (c) => String(c.campaign.id) === String(r.campaign.id),
+            ) || {}
+          : r,
+      ),
+    }));
     const report = {
       source: "google",
       accountName: saved.accountName,
@@ -260,19 +280,9 @@ export async function GET(request: Request) {
       fetchedAt: new Date().toISOString(),
       days,
       ...(scoped ? { scopeLabel: "Campaña de Busqueda + Pmax Eticsa" } : {}),
-      campaigns: (scoped ? campaignMeta : campaignRows).map((r) => ({
-        id: r.campaign.id,
-        name: r.campaign.name,
-        status: r.campaign.status,
-        channel: r.campaign.advertisingChannelType,
-        ...metrics(
-          scoped
-            ? campaignRows.find(
-                (c) => String(c.campaign.id) === String(r.campaign.id),
-              ) || {}
-            : r,
-        ),
-      })),
+      campaigns: scoped
+        ? mergeCampaignPair(campaignList, campaignIds[0], campaignIds[1])
+        : campaignList,
       campaignStatuses: campaignStatusRows.map((r) => ({
         id: r.campaign.id,
         name: r.campaign.name,

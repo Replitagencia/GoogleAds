@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { aggregateCampaignDays } from "../lib/consolidated-report";
+import {
+  aggregateCampaignDays,
+  mergeCampaignPair,
+} from "../lib/consolidated-report";
 import { sum } from "../lib/reporting";
 
 test("consolida por fecha únicamente las campañas seleccionadas", () => {
@@ -48,4 +51,29 @@ test("consolida por fecha únicamente las campañas seleccionadas", () => {
     "2026-11-04",
   );
   assert.equal(sum(previous).cost, 90);
+});
+
+test("agrupa Pmax en búsqueda y conserva las demás campañas incluso sin actividad", () => {
+  const campaign = (id: string, cost: number) => ({
+    id,
+    name: id,
+    cost,
+    clicks: cost,
+    impressions: cost * 10,
+    conversions: cost / 2,
+  });
+  const rows = [
+    campaign("search", 10),
+    campaign("pmax", 4),
+    campaign("catalog", 0),
+  ];
+  const result = mergeCampaignPair(rows, "search", "pmax");
+  assert.deepEqual(
+    result.map((c) => c.id),
+    ["search", "catalog"],
+  );
+  assert.equal(result[0].cost, 14);
+  assert.equal(result[0].conversions, 7);
+  assert.equal(result[1].cost, 0);
+  assert.deepEqual(mergeCampaignPair(rows, "search", "missing"), rows);
 });

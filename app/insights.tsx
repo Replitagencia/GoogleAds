@@ -454,7 +454,7 @@ export function DashboardInsights({
                 <Target size={18} /> Conversiones de WhatsApp
               </h2>
               <p>
-                Acciones atribuidas a las campañas seleccionadas durante el
+                Acciones atribuidas a las campañas de la cuenta durante el
                 período.
               </p>
             </div>

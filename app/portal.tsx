@@ -655,8 +655,9 @@ export default function Portal({
                 </div>
                 {report.scopeLabel && (
                   <div className="message" role="status">
-                    Vista consolidada: {report.scopeLabel}. El presupuesto
-                    mensual corresponde a toda la cuenta.
+                    Campaña de Busqueda incluye Pmax Eticsa; las demás campañas
+                    se muestran por separado. Los indicadores generales y el
+                    presupuesto corresponden a toda la cuenta.
                   </div>
                 )}
                 {busy && (
