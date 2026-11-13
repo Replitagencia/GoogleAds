@@ -380,7 +380,9 @@ export function DashboardInsights({
     { id: "locations", title: "Ubicaciones", rows: insights.locations },
     { id: "keywords", title: "Palabras clave", rows: insights.keywords },
     { id: "terms", title: "Búsquedas", rows: insights.terms },
-    { id: "ads", title: "Anuncios", rows: insights.ads },
+    ...(eticsaWhatsapp
+      ? []
+      : [{ id: "ads", title: "Anuncios", rows: insights.ads }]),
   ];
   const selected = defs.find((d) => d.id === tab)!;
   return (
