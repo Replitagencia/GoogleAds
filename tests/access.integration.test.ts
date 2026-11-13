@@ -218,6 +218,76 @@ test("el reporte especial exige acceso al cliente autorizado", async () => {
     404,
   );
 });
+test("la vista consolidada usa una caché separada y respeta los permisos", async () => {
+  const id = "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519",
+    customer = "3213724556",
+    now = Date.now();
+  const period = periods(30, "America/Santiago");
+  const key = `selected-v1:${id}:${customer}:${now}:30:${period.today}`;
+  const fixture = {
+    ...demoReport(30),
+    source: "google",
+    customerId: customer,
+    scopeLabel: "Campaña de Busqueda + Pmax Eticsa",
+  };
+  const pool = getPool();
+  try {
+    await pool.query(
+      "INSERT INTO clients(id,name) VALUES($1,'Eticsa de prueba')",
+      [id],
+    );
+    await pool.query(
+      'INSERT INTO memberships(user_id,client_id) SELECT id,$1 FROM "user" WHERE email=$2',
+      [id, emailA],
+    );
+    await pool.query(
+      "INSERT INTO google_connections(client_id,refresh_token,customer_id,account_name,currency,time_zone,updated_at) VALUES($1,$2,$3,'Prueba','CLP','America/Santiago',$4)",
+      [id, await encryptToken("solo-prueba"), customer, now],
+    );
+    await pool.query(
+      "INSERT INTO report_cache(id,payload,expires_at) VALUES($1,$2,$3)",
+      [key, JSON.stringify(fixture), now + 60000],
+    );
+    const allowed = await request(
+      `/api/report?days=30&scope=selected&clientId=${id}`,
+      "GET",
+      undefined,
+      cookieA,
+    );
+    assert.equal(allowed.status, 200);
+    assert.equal(allowed.data.scopeLabel, fixture.scopeLabel);
+    assert.equal(
+      (
+        await request(
+          `/api/report?days=30&scope=selected&clientId=${id}`,
+          "GET",
+          undefined,
+          cookieB,
+        )
+      ).status,
+      404,
+    );
+    await pool.query(
+      "UPDATE google_connections SET customer_id='1111111111' WHERE client_id=$1",
+      [id],
+    );
+    assert.equal(
+      (
+        await request(
+          `/api/report?days=30&scope=selected&clientId=${id}`,
+          "GET",
+          undefined,
+          cookieA,
+        )
+      ).status,
+      409,
+    );
+  } finally {
+    await pool.query("DELETE FROM report_cache WHERE id=$1", [key]);
+    await pool.query("DELETE FROM google_connections WHERE client_id=$1", [id]);
+    await pool.query("DELETE FROM clients WHERE id=$1", [id]);
+  }
+});
 test("registro público cerrado e invitaciones de un solo uso", async () => {
   assert.notEqual(
     (

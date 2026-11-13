@@ -351,7 +351,9 @@ export function DashboardInsights({
               <Wallet size={18} /> Presupuesto del mes
             </h2>
             <p>
-              {insights.period.month} · Inversión publicitaria, sin honorarios
+              {insights.period.month} ·{" "}
+              {report.scopeLabel ? "Toda la cuenta de Google Ads · " : ""}
+              Inversión publicitaria, sin honorarios
             </p>
           </div>
           <span className="badge">
@@ -446,7 +448,12 @@ export function DashboardInsights({
             <h2>
               <Target size={18} /> Contactos y medición
             </h2>
-            <p>Acciones de conversión configuradas y resultados del período</p>
+            <p>
+              Acciones configuradas en la cuenta y resultados{" "}
+              {report.scopeLabel
+                ? "de las campañas seleccionadas"
+                : "del período"}
+            </p>
           </div>
         </div>
         <div className="measurement-note">

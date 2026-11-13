@@ -56,7 +56,7 @@ La prueba de Google sigue siendo independiente de la autenticación SaaS. Si el 
 
 El portal ofrece un reporte en PDF, generado en el navegador con los últimos siete días completos de la cuenta y los siete días anteriores. La fecha de consulta, la moneda y la zona horaria proceden del informe de Google Ads. Las búsquedas reflejan solo los términos identificados y disponibles, y una ausencia en la muestra anterior no se interpreta como cero. No se generan conclusiones causales ni gestiones ficticias. La descarga CSV continúa disponible por separado.
 
-Para Eticsa, el PDF consolida exclusivamente las campañas «Campaña de Busqueda» (23169711798) y «Pmax Eticsa» (23461440880), para ambos períodos. El tablero mantiene los resultados de toda la cuenta. Si la cuenta conectada cambia o alguna de las campañas no se puede verificar, el reporte muestra un error en lugar de sustituirlas por otras.
+Para Eticsa, el portal del cliente y el PDF consolidan exclusivamente las campañas «Campaña de Busqueda» (23169711798) y «Pmax Eticsa» (23461440880), para ambos períodos. La sección de presupuesto mensual está identificada como un dato de toda la cuenta. La administración de la agencia sigue mostrando la cuenta completa. Si la cuenta conectada cambia o alguna de las campañas no se puede verificar, el reporte muestra un error en lugar de sustituirlas por otras.
 
 El checklist admite etapa, estado, responsable, fecha comprometida y una referencia textual a la evidencia. «Esperando al cliente» identifica dependencias externas. Las gestiones internas solo son visibles para la agencia; las actividades compartidas se identifican por separado en el historial, que muestra hasta 100 registros recientes por cliente.
 

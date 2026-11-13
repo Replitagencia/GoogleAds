@@ -153,7 +153,11 @@ export default function Portal({
     setBusy(true);
     setError("");
     try {
-      const r = await fetch(api(`/api/report?days=${days}`)),
+      const r = await fetch(
+          api(
+            `/api/report?days=${days}${clientId === "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519" ? "&scope=selected" : ""}`,
+          ),
+        ),
         data = (await r.json()) as Report & { error?: string };
       if (!r.ok) throw new Error(data.error || "No se pudo cargar el reporte.");
       if (id === requestId.current) setLive(data);
@@ -644,6 +648,12 @@ export default function Portal({
                     </button>
                   </div>
                 </div>
+                {report.scopeLabel && (
+                  <div className="message" role="status">
+                    Vista consolidada: {report.scopeLabel}. El presupuesto
+                    mensual corresponde a toda la cuenta.
+                  </div>
+                )}
                 {busy && (
                   <div className="loading-line" role="status">
                     Consultando Google Ads…
