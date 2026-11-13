@@ -236,6 +236,62 @@ function BreakdownTable({
     </div>
   );
 }
+function WhatsappAnalytics({
+  clientId,
+  days,
+}: {
+  clientId: string;
+  days: number;
+}) {
+  const [data, setData] = useState<{
+    available: boolean;
+    count?: number;
+    timeZone?: string;
+    period?: { start: string; end: string };
+  } | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    setData(null);
+    fetch(
+      `/api/ga4/whatsapp?clientId=${encodeURIComponent(clientId)}&days=${days}`,
+      { signal: controller.signal },
+    )
+      .then(async (r) => (r.ok ? r.json() : { available: false }))
+      .then(setData)
+      .catch((e) => {
+        if (e.name !== "AbortError") setData({ available: false });
+      });
+    return () => controller.abort();
+  }, [clientId, days]);
+  return (
+    <div>
+      <span>Clics en WhatsApp registrados por GA4: </span>
+      <strong>
+        {data === null
+          ? "Consultando…"
+          : data.available
+            ? number(data.count!)
+            : "No disponible"}
+      </strong>
+      {data?.available ? (
+        <small>
+          {" "}
+          · Todos los canales · {data.period?.start} al {data.period?.end} ·{" "}
+          {data.timeZone}
+        </small>
+      ) : (
+        data && (
+          <small>
+            {" "}
+            · No hay datos del evento para este período o falta verificar su
+            medición.
+          </small>
+        )
+      )}
+    </div>
+  );
+}
+
 export function DashboardInsights({
   report,
   money,
@@ -459,7 +515,8 @@ export function DashboardInsights({
               </p>
             </div>
           </div>
-          <div className="conversion-summary">
+          <div className="conversion-summary" style={{ display: "block" }}>
+            <WhatsappAnalytics clientId={clientId} days={report.days} />
             {insights.unavailable.includes("conversions") ||
             insights.unavailable.includes("conversionMetrics") ? (
               <span>Datos de conversiones no disponibles en este momento.</span>
@@ -470,7 +527,7 @@ export function DashboardInsights({
               </span>
             ) : (
               <span>
-                Conversiones atribuidas:{" "}
+                Conversiones atribuidas por Google Ads:{" "}
                 <strong>
                   {number(
                     whatsappActions.reduce(
@@ -483,8 +540,11 @@ export function DashboardInsights({
             )}
           </div>
           <p className="insight-footnote padded">
-            Un clic en WhatsApp no confirma una conversación y una conversión no
-            siempre representa un contacto único.
+            GA4 cuenta eventos registrados en el sitio desde todos los canales.
+            Un clic no confirma que se haya enviado un mensaje. Google Ads
+            asigna crédito a los anuncios que contribuyeron a una conversión;
+            por eso puede mostrar decimales. Las cifras no deben sumarse y
+            pueden usar zonas horarias diferentes.
           </p>
         </section>
       ) : (
