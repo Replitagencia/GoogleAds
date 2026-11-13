@@ -102,7 +102,7 @@ export default function Portal({
     [menu, setMenu] = useState(false),
     [metric, setMetric] = useState("clicks");
   const requestId = useRef(0);
-  const report: Report = live || {
+  const originalReport: Report = live || {
     source: "pending",
     accountName: clientName,
     customerId: "",
@@ -113,6 +113,24 @@ export default function Portal({
     campaigns: [],
     daily: [],
   };
+  const report: Report =
+    clientId === "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519" &&
+    originalReport.customerId === "3213724556"
+      ? {
+          ...originalReport,
+          campaigns: originalReport.campaigns.filter(
+            (campaign) =>
+              !(
+                campaign.name === "Campaña Buscador" &&
+                campaign.status === "PAUSED" &&
+                campaign.cost === 0 &&
+                campaign.clicks === 0 &&
+                campaign.impressions === 0 &&
+                campaign.conversions === 0
+              ),
+          ),
+        }
+      : originalReport;
   const demo = report.source === "demo";
   const money = (n: number) =>
     new Intl.NumberFormat("es-CL", {
