@@ -41,6 +41,7 @@ import {
 import { type Report, type Campaign } from "@/lib/demo";
 import { PerformanceSummary, DashboardInsights } from "./insights";
 import Logout from "./logout";
+import AnalyticsPanel from "./ga4";
 type View = "overview" | "campaigns" | "connection";
 type Status = {
   ready: boolean;
@@ -199,6 +200,10 @@ export default function Portal({
       cancelled: "La autorización fue cancelada. Puedes volver a intentarlo.",
       expired: "La autorización venció. Vuelve a conectar la cuenta.",
       failed: "No se pudo completar la autorización de Google.",
+      ga4_connected:
+        "Google Analytics autorizado. Ingresa el ID numérico de la propiedad.",
+      ga4_cancelled: "La autorización de Google Analytics fue cancelada.",
+      ga4_failed: "No se pudo completar la autorización de Google Analytics.",
     };
     setNotice(messages[p.get("notice") || ""] || "");
     refreshStatus().catch(() =>
@@ -962,6 +967,13 @@ export default function Portal({
                   </div>
                 </section>
                 {view === "overview" && (
+                  <AnalyticsPanel
+                    clientId={clientId}
+                    isAdmin={isAdmin}
+                    days={days}
+                  />
+                )}
+                {view === "overview" && (
                   <DashboardInsights
                     key={report.customerId}
                     report={report}
@@ -980,6 +992,12 @@ export default function Portal({
             )
           ) : (
             <div className="connection-layout">
+              <AnalyticsPanel
+                clientId={clientId}
+                isAdmin={isAdmin}
+                days={days}
+                settings
+              />
               <section className="panel connection-card">
                 <div className="connection-logo">
                   <GoogleMark />

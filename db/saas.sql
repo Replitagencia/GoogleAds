@@ -108,3 +108,14 @@ CREATE TABLE IF NOT EXISTS agency_work_log (
 CREATE INDEX IF NOT EXISTS agency_work_log_client_created ON agency_work_log(client_id,created_at DESC);
 ALTER TABLE client_checklist ADD COLUMN IF NOT EXISTS completed_at timestamptz;
 UPDATE client_checklist SET completed_at=updated_at WHERE completed AND completed_at IS NULL;
+
+-- GA4 tiene autorización separada de Google Ads, por cliente.
+CREATE TABLE IF NOT EXISTS ga4_connections (
+ client_id text PRIMARY KEY REFERENCES clients(id) ON DELETE CASCADE,
+ refresh_token text NOT NULL, property_id text, property_name text, time_zone text,
+ updated_at bigint NOT NULL
+);
+CREATE TABLE IF NOT EXISTS ga4_oauth_states (
+ state text PRIMARY KEY, user_id text NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+ client_id text NOT NULL REFERENCES clients(id) ON DELETE CASCADE, expires_at bigint NOT NULL
+);

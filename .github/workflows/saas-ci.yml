@@ -27,6 +27,8 @@ jobs:
       SMTP_PORT: 1026
       MAIL_FROM: qa@example.test
       NEXT_TELEMETRY_DISABLED: 1
+      GOOGLE_CLIENT_ID: qa-client.invalid
+      GOOGLE_CLIENT_SECRET: qa-secret-not-real
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

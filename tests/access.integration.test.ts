@@ -416,6 +416,110 @@ test("cliente no puede administrar, reconectar Google ni escribir gestiones", as
     403,
   );
 });
+test("GA4: solo la agencia configura y cada cliente consulta su conexión", async () => {
+  for (const path of [
+    `/api/ga4/status?clientId=${clientA}`,
+    `/api/ga4/report?clientId=${clientA}`,
+  ]) {
+    assert.equal((await request(path)).status, 401);
+    assert.equal((await request(path, "GET", undefined, cookieB)).status, 404);
+    const own = await request(path, "GET", undefined, cookieA);
+    assert.equal(own.status, 200);
+    assert.equal(own.data.connected, false);
+  }
+  assert.equal(
+    (
+      await request(
+        `/api/ga4/connect?clientId=${clientA}`,
+        "GET",
+        undefined,
+        cookieA,
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await request(
+        `/api/ga4/property?clientId=${clientA}`,
+        "POST",
+        { propertyId: "123456789" },
+        cookieA,
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await request(
+        `/api/ga4/property?clientId=${clientA}`,
+        "POST",
+        { propertyId: "123456789" },
+        adminCookie,
+        "https://forged.example",
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await request(
+        `/api/ga4/property?clientId=${clientA}`,
+        "POST",
+        { propertyId: "G-12345" },
+        adminCookie,
+      )
+    ).status,
+    400,
+  );
+});
+test("cancelar autorización GA4 no altera Google Ads y consume el estado una vez", async () => {
+  const db = getPool(),
+    state = randomUUID();
+  const admin = await db.query('SELECT id FROM "user" WHERE email=$1', [
+    adminEmail,
+  ]);
+  const before = await db.query(
+    "SELECT customer_id,refresh_token FROM google_connections WHERE client_id=$1",
+    [clientA],
+  );
+  await db.query(
+    "INSERT INTO ga4_oauth_states(state,user_id,client_id,expires_at) VALUES($1,$2,$3,$4)",
+    [state, admin.rows[0].id, clientA, Date.now() + 60000],
+  );
+  assert.equal(
+    (
+      await request(
+        `/api/google/callback?state=${state}&error=access_denied`,
+        "GET",
+        undefined,
+        cookieA,
+      )
+    ).status,
+    403,
+  );
+  const cancelled = await request(
+    `/api/google/callback?state=${state}&error=access_denied`,
+    "GET",
+    undefined,
+    adminCookie,
+  );
+  assert.equal(cancelled.status, 303);
+  assert.match(
+    cancelled.response.headers.get("location") || "",
+    /notice=ga4_cancelled/,
+  );
+  assert.equal(
+    (await db.query("SELECT 1 FROM ga4_oauth_states WHERE state=$1", [state]))
+      .rowCount,
+    0,
+  );
+  const after = await db.query(
+    "SELECT customer_id,refresh_token FROM google_connections WHERE client_id=$1",
+    [clientA],
+  );
+  assert.deepEqual(after.rows, before.rows);
+});
 test("administrador puede escribir y ver ambos clientes; CSRF rechazado", async () => {
   assert.equal(
     (

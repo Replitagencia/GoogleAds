@@ -59,7 +59,7 @@ export async function encryptToken(token: string) {
   );
   return `${bytesToBase64(iv)}.${bytesToBase64(new Uint8Array(encrypted))}`;
 }
-async function decryptToken(value: string) {
+export async function decryptToken(value: string) {
   const [iv, data] = value.split(".");
   return new TextDecoder().decode(
     await crypto.subtle.decrypt(

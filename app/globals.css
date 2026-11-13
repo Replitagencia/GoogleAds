@@ -2317,3 +2317,4 @@ footer {
 .agency-log p { white-space:pre-wrap; overflow-wrap:anywhere; }
 .admin-alerts small { color:#718096; line-height:1.5; }
 @media(max-width:700px) { .agency-task-form,.agency-log-form { grid-template-columns:1fr; } .agency-wide { grid-column:auto; } }
+.ga4-metrics { padding: 22px; }
