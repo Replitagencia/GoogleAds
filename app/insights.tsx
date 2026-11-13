@@ -315,6 +315,10 @@ export function DashboardInsights({
     projection = insights.period.elapsedDays
       ? (spent / insights.period.elapsedDays) * insights.period.monthDays
       : null;
+  const eticsaWhatsapp = report.customerId === "3213724556";
+  const whatsappActions = insights.conversions.filter(
+    (c) => c.name.trim().toLowerCase() === "eticsa (web) bton_whatsapp",
+  );
   const defs = [
     { id: "devices", title: "Dispositivos", rows: insights.devices },
     { id: "locations", title: "Ubicaciones", rows: insights.locations },
@@ -442,105 +446,148 @@ export function DashboardInsights({
           )}
         </div>
       </section>
-      <section className="panel">
-        <div className="panel-heading">
-          <div>
-            <h2>
-              <Target size={18} /> Contactos y medición
-            </h2>
+      {eticsaWhatsapp ? (
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <h2>
+                <Target size={18} /> Conversiones de WhatsApp
+              </h2>
+              <p>
+                Acciones atribuidas a las campañas seleccionadas durante el
+                período.
+              </p>
+            </div>
+          </div>
+          <div className="conversion-summary">
+            {insights.unavailable.includes("conversions") ||
+            insights.unavailable.includes("conversionMetrics") ? (
+              <span>Datos de conversiones no disponibles en este momento.</span>
+            ) : whatsappActions.length === 0 ? (
+              <span>
+                No se encontró la acción de conversión de WhatsApp en esta
+                cuenta.
+              </span>
+            ) : (
+              <span>
+                Conversiones atribuidas:{" "}
+                <strong>
+                  {number(
+                    whatsappActions.reduce(
+                      (sum, action) => sum + action.conversions,
+                      0,
+                    ),
+                  )}
+                </strong>
+              </span>
+            )}
+          </div>
+          <p className="insight-footnote padded">
+            Un clic en WhatsApp no confirma una conversación y una conversión no
+            siempre representa un contacto único.
+          </p>
+        </section>
+      ) : (
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <h2>
+                <Target size={18} /> Contactos y medición
+              </h2>
+              <p>
+                Acciones configuradas en la cuenta y resultados{" "}
+                {report.scopeLabel
+                  ? "de las campañas seleccionadas"
+                  : "del período"}
+              </p>
+            </div>
+          </div>
+          <div className="measurement-note">
+            <Info size={17} />
             <p>
-              Acciones configuradas en la cuenta y resultados{" "}
-              {report.scopeLabel
-                ? "de las campañas seleccionadas"
-                : "del período"}
+              {measurementMessage(insights.conversions, insights.unavailable)}
             </p>
           </div>
-        </div>
-        <div className="measurement-note">
-          <Info size={17} />
-          <p>
-            {measurementMessage(insights.conversions, insights.unavailable)}
-          </p>
-        </div>
-        {!insights.unavailable.includes("conversionMetrics") && (
-          <div className="conversion-summary">
-            <span>
-              Conversiones por acción:{" "}
-              <strong>
-                {number(
-                  insights.conversions.reduce((n, c) => n + c.conversions, 0),
-                )}
-              </strong>
-            </span>
-            <span>
-              Todas las conversiones:{" "}
-              <strong>
-                {number(
-                  insights.conversions.reduce(
-                    (n, c) => n + c.allConversions,
-                    0,
-                  ),
-                )}
-              </strong>
-            </span>
-          </div>
-        )}
-        <div className="table-scroll">
-          <table className="insight-table">
-            <thead>
-              <tr>
-                <th>Acción registrada</th>
-                <th>Tipo</th>
-                <th>Configuración</th>
-                <th>Conversiones</th>
-                <th>Todas las conversiones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {insights.conversions.map((c) => (
-                <tr key={c.id}>
-                  <td>
-                    <strong>{c.name}</strong>
-                  </td>
-                  <td>{categories[c.category] || c.category}</td>
-                  <td>
-                    {c.status === "UNKNOWN"
-                      ? "No disponible"
-                      : c.status === "ENABLED"
-                        ? c.primary
-                          ? "Principal · habilitada"
-                          : "Secundaria · habilitada"
-                        : "No habilitada"}
-                  </td>
-                  <td>
-                    {insights.unavailable.includes("conversionMetrics")
-                      ? "—"
-                      : number(c.conversions)}
-                  </td>
-                  <td>
-                    {insights.unavailable.includes("conversionMetrics")
-                      ? "—"
-                      : number(c.allConversions)}
-                  </td>
+          {!insights.unavailable.includes("conversionMetrics") && (
+            <div className="conversion-summary">
+              <span>
+                Conversiones por acción:{" "}
+                <strong>
+                  {number(
+                    insights.conversions.reduce((n, c) => n + c.conversions, 0),
+                  )}
+                </strong>
+              </span>
+              <span>
+                Todas las conversiones:{" "}
+                <strong>
+                  {number(
+                    insights.conversions.reduce(
+                      (n, c) => n + c.allConversions,
+                      0,
+                    ),
+                  )}
+                </strong>
+              </span>
+            </div>
+          )}
+          <div className="table-scroll">
+            <table className="insight-table">
+              <thead>
+                <tr>
+                  <th>Acción registrada</th>
+                  <th>Tipo</th>
+                  <th>Configuración</th>
+                  <th>Conversiones</th>
+                  <th>Todas las conversiones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {!insights.conversions.length && (
-          <p className="insight-empty">
-            {insights.unavailable.includes("conversions")
-              ? "Configuración no disponible."
-              : "Sin acciones de conversión disponibles."}
+              </thead>
+              <tbody>
+                {insights.conversions.map((c) => (
+                  <tr key={c.id}>
+                    <td>
+                      <strong>{c.name}</strong>
+                    </td>
+                    <td>{categories[c.category] || c.category}</td>
+                    <td>
+                      {c.status === "UNKNOWN"
+                        ? "No disponible"
+                        : c.status === "ENABLED"
+                          ? c.primary
+                            ? "Principal · habilitada"
+                            : "Secundaria · habilitada"
+                          : "No habilitada"}
+                    </td>
+                    <td>
+                      {insights.unavailable.includes("conversionMetrics")
+                        ? "—"
+                        : number(c.conversions)}
+                    </td>
+                    <td>
+                      {insights.unavailable.includes("conversionMetrics")
+                        ? "—"
+                        : number(c.allConversions)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {!insights.conversions.length && (
+            <p className="insight-empty">
+              {insights.unavailable.includes("conversions")
+                ? "Configuración no disponible."
+                : "Sin acciones de conversión disponibles."}
+            </p>
+          )}
+          <p className="insight-footnote padded">
+            «Todas las conversiones» incluye acciones secundarias. Un clic en
+            WhatsApp no confirma una conversación y una conversión no siempre
+            representa un contacto único. Ver acciones configuradas no sustituye
+            una prueba de sus etiquetas.
           </p>
-        )}
-        <p className="insight-footnote padded">
-          «Todas las conversiones» incluye acciones secundarias. Un clic en
-          WhatsApp no confirma una conversación y una conversión no siempre
-          representa un contacto único. Ver acciones configuradas no sustituye
-          una prueba de sus etiquetas.
-        </p>
-      </section>
+        </section>
+      )}
       <section className="panel">
         <div className="panel-heading">
           <div>
