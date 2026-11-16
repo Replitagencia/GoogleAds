@@ -2318,3 +2318,117 @@ footer {
 .admin-alerts small { color:#718096; line-height:1.5; }
 @media(max-width:700px) { .agency-task-form,.agency-log-form { grid-template-columns:1fr; } .agency-wide { grid-column:auto; } }
 .ga4-metrics { padding: 22px; }
+
+/* Legibilidad del portal de clientes */
+.app-shell .eyebrow,
+.app-shell .page-heading p,
+.app-shell .account-label small,
+.app-shell .panel-heading p,
+.app-shell .comparison-period,
+.app-shell .insight-footnote,
+.app-shell .insight-empty,
+.app-shell .budget-metrics small,
+.app-shell .budget-form small,
+.app-shell .activity-form small,
+.app-shell .table-footer,
+.app-shell .bottom-note,
+.app-shell footer {
+  color: #53627a;
+}
+.app-shell .stat-card > div,
+.app-shell .stat-card small,
+.app-shell .conversion-summary,
+.app-shell .insight-table small,
+.app-shell .campaign-name small,
+.app-shell th {
+  color: #4d5c74;
+}
+.app-shell .stat-card .comparison,
+.app-shell .demo-banner div > span,
+.app-shell .insight-tabs button {
+  color: #405884;
+}
+.app-shell .insight-tabs button[aria-selected="true"] {
+  color: #314bb9;
+}
+.app-shell .stat-card > div,
+.app-shell .stat-card .comparison,
+.app-shell .stat-card small,
+.app-shell .panel-heading p,
+.app-shell .insight-footnote,
+.app-shell .budget-metrics small,
+.app-shell th,
+.app-shell td {
+  font-size: 12px;
+}
+.app-shell .stat-card > strong {
+  overflow-wrap: anywhere;
+}
+.app-shell .search input::placeholder {
+  color: #59677d;
+  opacity: 1;
+}
+@media (max-width: 680px) {
+  .app-shell .page-heading {
+    flex-wrap: wrap;
+  }
+  .app-shell .page-heading p {
+    font-size: 13px;
+  }
+  .app-shell .eyebrow {
+    font-size: 10px;
+  }
+  .app-shell .export {
+    font-size: 12px;
+    padding: 10px 12px;
+  }
+  .app-shell .demo-banner strong,
+  .app-shell .demo-banner div > span,
+  .app-shell .account-label strong,
+  .app-shell .account-label small,
+  .app-shell .date-select,
+  .app-shell .status-filter,
+  .app-shell .search,
+  .app-shell .table-footer,
+  .app-shell .bottom-note,
+  .app-shell .comparison-period,
+  .app-shell .budget-metrics small,
+  .app-shell .insight-tabs button {
+    font-size: 12px;
+  }
+  .app-shell .date-select select {
+    max-width: 130px;
+  }
+  .app-shell .refresh {
+    width: 40px;
+    height: 40px;
+  }
+  .app-shell .expanded-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .app-shell .stat-card {
+    min-width: 0;
+    padding: 15px 12px;
+  }
+  .app-shell .stat-card > strong {
+    font-size: clamp(20px, 6vw, 25px);
+  }
+  .app-shell .stat-card .comparison,
+  .app-shell .stat-card small {
+    line-height: 1.5;
+  }
+  .app-shell .ga4-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .app-shell .insight-tabs button {
+    min-height: 44px;
+  }
+  .app-shell .table-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+@media (max-width: 350px) {
+  .app-shell .expanded-stats {
+    grid-template-columns: 1fr;
+  }
+}
