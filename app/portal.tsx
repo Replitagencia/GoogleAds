@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
+import BrandCopyright from "@/components/brand-copyright";
 import {
   Activity,
   ArrowDownToLine,
@@ -1177,7 +1178,9 @@ export default function Portal({
             </div>
           )}
           <footer>
-            <span>© 2026 AgenciaLabs</span>
+            <span>
+              <BrandCopyright />
+            </span>
             <span>Claridad para tomar mejores decisiones.</span>
           </footer>
         </div>

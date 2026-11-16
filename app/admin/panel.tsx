@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import BrandCopyright from "@/components/brand-copyright";
 import { Plus, ArrowRight, Users, Link2 } from "lucide-react";
 import Logout from "../logout";
 import { dateInZone } from "@/lib/reporting";
@@ -1227,6 +1228,9 @@ export default function AdminPanel({ email }: { email: string }) {
           </div>
         </section>
       )}
+      <footer className="brand-footer">
+        <BrandCopyright />
+      </footer>
     </div>
   );
 }

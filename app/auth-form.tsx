@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { ArrowRight, ShieldCheck } from "lucide-react";
+import BrandCopyright from "@/components/brand-copyright";
 import { authClient } from "./auth-client";
 export default function AuthForm({
   mode,
@@ -333,7 +334,9 @@ export default function AuthForm({
             </p>
           )}
         </form>
-        <small>© 2026 AgenciaLabs</small>
+        <small>
+          <BrandCopyright />
+        </small>
       </main>
     </div>
   );

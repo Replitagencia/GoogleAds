@@ -1,3 +1,4 @@
+import BrandCopyright from "@/components/brand-copyright";
 import { redirect } from "next/navigation";
 import { getPortalUser, clientAccess } from "@/lib/access";
 import TicketPanel from "./ticket-panel";
@@ -37,6 +38,9 @@ export default async function Tickets({
         todavía no envían avisos por correo ni WhatsApp.
       </div>
       <TicketPanel clientId={clientId} admin={false} />
+      <footer className="brand-footer">
+        <BrandCopyright />
+      </footer>
     </main>
   );
 }

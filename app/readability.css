@@ -166,3 +166,7 @@
   .auth-card h2 { font-size: 25px; }
 }
 .auth-card .text-button { color: #304ea7; font-size: 13px; min-height: 40px; justify-content: flex-start; }
+
+.brand-footer { margin-top: 32px; padding: 20px 0; border-top: 1px solid #dfe5ed; color: #53627a; font-size: 12px; line-height: 1.5; }
+.app-shell footer { flex-wrap: wrap; gap: 8px 20px; font-size: 12px; line-height: 1.5; }
+.auth-main > small { text-align: center; line-height: 1.5; }
