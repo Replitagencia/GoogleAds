@@ -43,12 +43,12 @@ export async function GET(request: Request) {
     const query = (q: string) => searchAds(token, saved.customerId!, q);
     const selected = `campaign.id IN (${CAMPAIGN_IDS.join(",")})`;
     const historicalStart = shiftMonths(period.monthStart, -12);
-    const [campaigns, history, monthlyRows] = await Promise.all([
+    const scopeLabel = "Campaña de Busqueda + Pmax Eticsa";
+    const historyOnly =
+      new URL(request.url).searchParams.get("view") === "monthly";
+    const [campaigns, monthlyRows] = await Promise.all([
       query(
         `SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type FROM campaign WHERE ${selected}`,
-      ),
-      query(
-        `SELECT campaign.id, segments.date, ${fields} FROM campaign WHERE ${selected} AND segments.date BETWEEN '${period.previousStart}' AND '${period.end}' ORDER BY segments.date`,
       ),
       query(
         `SELECT campaign.id, segments.date, ${fields} FROM campaign WHERE ${selected} AND segments.date BETWEEN '${historicalStart}' AND '${period.end}' ORDER BY segments.date`,
@@ -63,6 +63,29 @@ export async function GET(request: Request) {
         },
         409,
       );
+    const monthlyHistory = {
+      status: monthlyRows === null ? "unavailable" : "available",
+      start: historicalStart,
+      end: period.end,
+      currentMonth: period.month,
+      months:
+        monthlyRows === null
+          ? []
+          : aggregateCampaignMonths(
+              monthlyRows.map((row) => ({
+                campaignId: String(row.campaign.id),
+                date: row.segments.date,
+                ...metrics(row),
+              })),
+              CAMPAIGN_IDS,
+              period.month,
+            ),
+    };
+    if (historyOnly) return json({ monthlyHistory, scopeLabel });
+
+    const history = await query(
+      `SELECT campaign.id, segments.date, ${fields} FROM campaign WHERE ${selected} AND segments.date BETWEEN '${period.previousStart}' AND '${period.end}' ORDER BY segments.date`,
+    );
     const unavailable: string[] = [];
     const terms = async (start: string, end: string, key: string) => {
       try {
@@ -109,7 +132,7 @@ export async function GET(request: Request) {
       timeZone: saved.timeZone,
       fetchedAt: new Date().toISOString(),
       days: 7,
-      scopeLabel: "Campaña de Busqueda + Pmax Eticsa",
+      scopeLabel,
       campaigns: campaigns.map((r) => ({
         id: String(r.campaign.id),
         name: r.campaign.name,
@@ -125,24 +148,7 @@ export async function GET(request: Request) {
         ),
       })),
       daily,
-      monthlyHistory: {
-        status: monthlyRows === null ? "unavailable" : "available",
-        start: historicalStart,
-        end: period.end,
-        currentMonth: period.month,
-        months:
-          monthlyRows === null
-            ? []
-            : aggregateCampaignMonths(
-                monthlyRows.map((row) => ({
-                  campaignId: String(row.campaign.id),
-                  date: row.segments.date,
-                  ...metrics(row),
-                })),
-                CAMPAIGN_IDS,
-                period.month,
-              ),
-      },
+      monthlyHistory,
       insights: {
         period,
         totals: sum(daily),

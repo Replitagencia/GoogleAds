@@ -44,6 +44,7 @@ import {
 import { type Report, type Campaign } from "@/lib/demo";
 import { chartByMonth } from "@/lib/reporting";
 import { PerformanceSummary, DashboardInsights } from "./insights";
+import EticsaMonthly from "./eticsa-monthly";
 import Logout from "./logout";
 import AnalyticsPanel from "./ga4";
 type View = "overview" | "campaigns" | "connection";
@@ -590,6 +591,9 @@ export default function Portal({
                 <X size={16} />
               </button>
             </div>
+          )}
+          {view === "overview" && clientId === "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519" && status?.customerId === "3213724556" && (
+            <EticsaMonthly clientId={clientId} />
           )}
           {view !== "connection" ? (
             !status?.customerId ? (

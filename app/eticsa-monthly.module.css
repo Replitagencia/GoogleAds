@@ -1,0 +1,117 @@
+.history {
+  margin: 0 0 24px;
+  padding: clamp(14px, 2vw, 28px);
+  border: 1px solid #d5dfea;
+  border-radius: 14px;
+  background: white;
+  color: #172f50;
+  min-width: 0;
+}
+.history h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+.history p {
+  margin: 5px 0;
+  color: #455970;
+  font-size: 0.94rem;
+}
+.charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.card {
+  container-type: inline-size;
+  min-width: 0;
+  background: #f6f9fc;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.card h3 {
+  background: #123d68;
+  color: white;
+  padding: 10px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 15px;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 1rem;
+  font-weight: 700;
+}
+.card h3 span {
+  font-size: 0.83rem;
+  font-weight: 500;
+}
+.chart {
+  padding: 12px;
+  list-style: none;
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+.column {
+  display: grid;
+  grid-template-columns: 5em minmax(0, 1fr) 4.5em;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.83rem;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+.track {
+  height: 10px;
+  border-radius: 2px;
+  background: #e4edf5;
+}
+.bar {
+  height: 100%;
+  width: var(--size);
+  background: #145ba5;
+  border-radius: 2px;
+}
+.column[data-current="true"] .bar {
+  background: #087d85;
+}
+.value {
+  text-align: right;
+}
+@container (min-width: 625px) {
+  .chart {
+    height: 205px;
+    grid-template-columns: repeat(13, minmax(0, 1fr));
+    gap: 1px;
+    padding: 16px 4px 8px;
+  }
+  .column {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 3px;
+    font-size: 0.68rem;
+    position: relative;
+    padding-bottom: 20px;
+  }
+  .track {
+    height: 100%;
+    width: 100%;
+    background: none;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .bar {
+    height: var(--size);
+    width: 65%;
+  }
+  .value {
+    order: -1;
+  }
+  .label {
+    position: absolute;
+    bottom: 0;
+    white-space: nowrap;
+  }
+}
