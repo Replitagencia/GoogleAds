@@ -23,7 +23,6 @@
   margin-top: 16px;
 }
 .card {
-  container-type: inline-size;
   min-width: 0;
   background: #f6f9fc;
   border-radius: 8px;
@@ -78,7 +77,10 @@
 .value {
   text-align: right;
 }
-@container (min-width: 625px) {
+@media (min-width: 768px) {
+  .charts {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 550px), 1fr));
+  }
   .chart {
     height: 205px;
     grid-template-columns: repeat(13, minmax(0, 1fr));
