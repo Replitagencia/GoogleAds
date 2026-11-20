@@ -1,4 +1,4 @@
-import { sum, zero, shiftDate, type Metrics } from "./reporting";
+import { sum, zero, shiftDate, shiftMonths, type Metrics } from "./reporting";
 
 export type CampaignDay = Metrics & { date: string; campaignId: string };
 export function aggregateCampaignDays(
@@ -37,4 +37,37 @@ export function mergeCampaignPair<T extends Metrics & { id: string }>(
     .map((c) =>
       c.id === primaryId ? { ...c, ...sum([primary, absorbed]) } : c,
     );
+}
+
+export type MonthlyActivity = {
+  month: string;
+  impressions: number | null;
+  clicks: number | null;
+};
+/** A missing Google Ads row remains unavailable, rather than being treated as a measured zero. */
+export function aggregateCampaignMonths(
+  rows: CampaignDay[],
+  campaignIds: readonly string[],
+  currentMonth: string,
+): MonthlyActivity[] {
+  const allowed = new Set(campaignIds);
+  const counts = new Map<string, { impressions: number; clicks: number }>();
+  for (const row of rows) {
+    if (!allowed.has(row.campaignId)) continue;
+    const key = row.date.slice(0, 7);
+    const existing = counts.get(key) || { impressions: 0, clicks: 0 };
+    existing.impressions += row.impressions;
+    existing.clicks += row.clicks;
+    counts.set(key, existing);
+  }
+  const first = currentMonth.slice(0, 7) + "-01";
+  return Array.from({ length: 13 }, (_, i) => {
+    const month = shiftMonths(first, i - 12).slice(0, 7);
+    const value = counts.get(month);
+    return {
+      month,
+      impressions: value?.impressions ?? null,
+      clicks: value?.clicks ?? null,
+    };
+  });
 }

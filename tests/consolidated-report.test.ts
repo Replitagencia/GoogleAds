@@ -77,3 +77,40 @@ test("agrupa Pmax en búsqueda y conserva las demás campañas incluso sin activ
   assert.equal(result[1].cost, 0);
   assert.deepEqual(mergeCampaignPair(rows, "search", "missing"), rows);
 });
+
+test("el historial de 13 meses suma solo las campañas elegidas y distingue meses sin registros", async () => {
+  const { aggregateCampaignMonths } =
+    await import("../lib/consolidated-report");
+  const row = (
+    campaignId: string,
+    date: string,
+    impressions: number,
+    clicks: number,
+  ) => ({ campaignId, date, impressions, clicks, cost: 0, conversions: 0 });
+  const months = aggregateCampaignMonths(
+    [
+      row("search", "2025-11-10", 100, 10),
+      row("pmax", "2025-11-11", 25, 2),
+      row("other", "2025-11-12", 900, 90),
+      row("search", "2026-11-05", 10, 1),
+    ],
+    ["search", "pmax"],
+    "2026-11",
+  );
+  assert.equal(months.length, 13);
+  assert.deepEqual(months[0], {
+    month: "2025-11",
+    impressions: 125,
+    clicks: 12,
+  });
+  assert.deepEqual(months[1], {
+    month: "2025-12",
+    impressions: null,
+    clicks: null,
+  });
+  assert.deepEqual(months[12], {
+    month: "2026-11",
+    impressions: 10,
+    clicks: 1,
+  });
+});

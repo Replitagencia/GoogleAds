@@ -210,7 +210,16 @@ export default function Portal({
       if (!response.ok)
         throw new Error(data.error || "No se pudo consultar el reporte.");
       const { saveWeeklyPdf } = await import("@/lib/weekly-pdf");
-      saveWeeklyPdf(data, clientName);
+      let logo: Uint8Array | undefined;
+      if (clientId === "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519") {
+        try {
+          const image = await fetch("/client-logos/eticsa.png");
+          if (image.ok) logo = new Uint8Array(await image.arrayBuffer());
+        } catch {
+          /* El reporte puede descargarse si el logo no está disponible. */
+        }
+      }
+      saveWeeklyPdf(data, clientName, logo);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo generar el PDF.");
     } finally {

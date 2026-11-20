@@ -2,8 +2,12 @@ import { jsPDF } from "jspdf";
 import type { Report } from "./demo";
 import type { Breakdown, Metrics } from "./reporting";
 
-// Report content comes only from the authorized, seven-day Google Ads response.
-export function saveWeeklyPdf(report: Report, clientName: string) {
+// The executive summary uses seven complete days; optional history uses Google Ads observations.
+export function saveWeeklyPdf(
+  report: Report,
+  clientName: string,
+  logo?: Uint8Array,
+) {
   if (report.source !== "google" || report.days !== 7 || !report.insights)
     throw new Error("No hay resultados reales del período disponibles.");
   const info = report.insights,
@@ -69,7 +73,13 @@ export function saveWeeklyPdf(report: Report, clientName: string) {
       7,
       [113, 130, 149],
     );
-    text(`${page} / 6`, 278, 161, 7, [113, 130, 149]);
+    text(
+      `${page} / ${report.monthlyHistory ? 7 : 6}`,
+      278,
+      161,
+      7,
+      [113, 130, 149],
+    );
   }
   function banner() {
     pdf.setFillColor(...blue);
@@ -386,5 +396,139 @@ export function saveWeeklyPdf(report: Report, clientName: string) {
     [93, 111, 135],
   );
   banner();
+  if (report.monthlyHistory) {
+    const history = report.monthlyHistory;
+    pdf.addPage();
+    let logoShown = false;
+    if (logo?.length) {
+      try {
+        pdf.addImage(logo, "PNG", 235, -8, 50, 50);
+        logoShown = true;
+      } catch {
+        /* The report remains available if the logo cannot be loaded. */
+      }
+    }
+    pdf.setFillColor(...blue);
+    pdf.rect(9, 9, 1.6, 22, "F");
+    text("EVOLUCIÓN · 13 MESES", 15, 13, 8, blue, "bold");
+    text("Impresiones y clics por mes", 15, 22, 20, dark, "bold");
+    text(
+      `Google Ads · ${date(history.start)} al ${date(history.end)} · Mes actual parcial, hasta ayer`,
+      15,
+      29,
+      8,
+      [75, 94, 119],
+    );
+    if (report.scopeLabel)
+      text(`Campañas: ${report.scopeLabel}`, 15, 34, 7.5, [75, 94, 119]);
+    if (!logoShown)
+      text(clientName.toUpperCase().slice(0, 35), 242, 16, 12, blue, "bold");
+    footer(7);
+    if (history.status !== "available" || history.months.length !== 13) {
+      text(
+        "No fue posible consultar el historial mensual de Google Ads.",
+        15,
+        58,
+        11,
+        dark,
+        "bold",
+      );
+      text(
+        "Vuelve a descargar el reporte cuando la conexión esté disponible.",
+        15,
+        67,
+        10,
+        [75, 94, 119],
+      );
+    } else {
+      const turquoise: [number, number, number] = [54, 190, 198];
+      const names = [
+        "ene",
+        "feb",
+        "mar",
+        "abr",
+        "may",
+        "jun",
+        "jul",
+        "ago",
+        "sep",
+        "oct",
+        "nov",
+        "dic",
+      ];
+      const monthLabel = (s: string) =>
+        `${names[Number(s.slice(5, 7)) - 1]} ${s.slice(2, 4)}${s === history.currentMonth ? "*" : ""}`;
+      function chart(
+        x: number,
+        title: string,
+        metric: "impressions" | "clicks",
+      ) {
+        const width = 134,
+          top = 48,
+          base = 124,
+          chartHeight = 55;
+        pdf.setFillColor(250, 252, 255);
+        pdf.roundedRect(x, 39, width, 93, 2, 2, "F");
+        pdf.setFillColor(...blue);
+        pdf.rect(x, 39, width, 10, "F");
+        text(title, x + 4, 46, 11, [255, 255, 255], "bold");
+        const max = Math.max(1, ...history.months.map((m) => m[metric] ?? 0));
+        const step = (width - 8) / 13;
+        for (let i = 0; i < history.months.length; i++) {
+          const item = history.months[i],
+            value = item[metric];
+          const cx = x + 4 + step * (i + 0.5),
+            height = value === null ? 0 : (value / max) * chartHeight;
+          if (value !== null && value > 0) {
+            pdf.setFillColor(
+              ...(item.month === history.currentMonth
+                ? turquoise
+                : ([15, 86, 167] as [number, number, number])),
+            );
+            pdf.rect(cx - 3, base - height, 6, height, "F");
+          }
+          const label = value === null ? "—" : number(value);
+          pdf.setFont("helvetica", "normal");
+          pdf.setFontSize(6.5);
+          pdf.setTextColor(...dark);
+          pdf.text(
+            label,
+            cx,
+            Math.min(base - 2, Math.max(top + 5, base - height - 2)),
+            { align: "center" },
+          );
+          pdf.setFontSize(6.2);
+          pdf.setTextColor(75, 94, 119);
+          pdf.text(monthLabel(item.month), cx, 129, { align: "center" });
+        }
+      }
+      chart(10, "Impresiones por mes", "impressions");
+      chart(153, "Clics por mes", "clicks");
+      const totals = history.months.reduce(
+        (a, m) => ({
+          impressions: a.impressions + (m.impressions ?? 0),
+          clicks: a.clicks + (m.clicks ?? 0),
+        }),
+        { impressions: 0, clicks: 0 },
+      );
+      pdf.setFillColor(232, 244, 250);
+      pdf.roundedRect(10, 136, 277, 12, 1.5, 1.5, "F");
+      text(
+        `TOTAL REGISTRADO: ${number(totals.impressions)} impresiones  ·  ${number(totals.clicks)} clics`,
+        15,
+        143,
+        10,
+        blue,
+        "bold",
+      );
+      text(
+        "* Mes actual hasta ayer. — Sin registros: puede significar ausencia de actividad o datos.",
+        12,
+        153,
+        7,
+        [75, 94, 119],
+      );
+    }
+  }
   pdf.save(`Reporte-Google-Ads-${p.start}-${p.end}.pdf`);
 }

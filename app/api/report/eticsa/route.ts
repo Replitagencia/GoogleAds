@@ -6,8 +6,11 @@ import {
   json,
   searchAds,
 } from "@/lib/google-ads";
-import { periods, sum, type Metrics } from "@/lib/reporting";
-import { aggregateCampaignDays } from "@/lib/consolidated-report";
+import { periods, shiftMonths, sum, type Metrics } from "@/lib/reporting";
+import {
+  aggregateCampaignDays,
+  aggregateCampaignMonths,
+} from "@/lib/consolidated-report";
 
 const ETICSA_CLIENT = "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519";
 const ETICSA_ACCOUNT = "3213724556";
@@ -39,13 +42,17 @@ export async function GET(request: Request) {
     const token = await accessToken(clientId);
     const query = (q: string) => searchAds(token, saved.customerId!, q);
     const selected = `campaign.id IN (${CAMPAIGN_IDS.join(",")})`;
-    const [campaigns, history] = await Promise.all([
+    const historicalStart = shiftMonths(period.monthStart, -12);
+    const [campaigns, history, monthlyRows] = await Promise.all([
       query(
         `SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type FROM campaign WHERE ${selected}`,
       ),
       query(
         `SELECT campaign.id, segments.date, ${fields} FROM campaign WHERE ${selected} AND segments.date BETWEEN '${period.previousStart}' AND '${period.end}' ORDER BY segments.date`,
       ),
+      query(
+        `SELECT campaign.id, segments.date, ${fields} FROM campaign WHERE ${selected} AND segments.date BETWEEN '${historicalStart}' AND '${period.end}' ORDER BY segments.date`,
+      ).catch(() => null),
     ]);
     const found = new Set(campaigns.map((r) => String(r.campaign?.id)));
     if (CAMPAIGN_IDS.some((id) => !found.has(id)))
@@ -118,6 +125,24 @@ export async function GET(request: Request) {
         ),
       })),
       daily,
+      monthlyHistory: {
+        status: monthlyRows === null ? "unavailable" : "available",
+        start: historicalStart,
+        end: period.end,
+        currentMonth: period.month,
+        months:
+          monthlyRows === null
+            ? []
+            : aggregateCampaignMonths(
+                monthlyRows.map((row) => ({
+                  campaignId: String(row.campaign.id),
+                  date: row.segments.date,
+                  ...metrics(row),
+                })),
+                CAMPAIGN_IDS,
+                period.month,
+              ),
+      },
       insights: {
         period,
         totals: sum(daily),

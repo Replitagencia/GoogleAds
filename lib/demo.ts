@@ -20,6 +20,17 @@ export type Report = {
   scopeLabel?: string;
   periodMode?: string;
   granularity?: "day" | "month";
+  monthlyHistory?: {
+    status: "available" | "unavailable";
+    start: string;
+    end: string;
+    currentMonth: string;
+    months: {
+      month: string;
+      impressions: number | null;
+      clicks: number | null;
+    }[];
+  };
   insights?: Insights;
   campaigns: Campaign[];
   daily: {
