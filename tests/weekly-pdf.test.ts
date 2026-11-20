@@ -76,7 +76,7 @@ test("el PDF de Eticsa agrega una página histórica sin inventar meses sin dato
     assert.match(content, /Impresiones y clics por mes/);
     assert.match(content, /TOTAL DE LA VENTANA/);
     assert.match(content, /estimadas/);
-    assert.match(content, /reporte del 2 al 6/);
+    assert.match(content, /cuenta completa/);
     assert.match(content, /7\.600 impresiones/);
     assert.match(content, /760 clics/);
   } finally {

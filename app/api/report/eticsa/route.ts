@@ -6,7 +6,7 @@ import {
   json,
   searchAds,
 } from "@/lib/google-ads";
-import { periods, sum, type Metrics } from "@/lib/reporting";
+import { periods, shiftMonths, sum, type Metrics } from "@/lib/reporting";
 import { aggregateCampaignDays } from "@/lib/consolidated-report";
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
@@ -40,26 +40,51 @@ const referenceRows = z
     ),
   );
 
-async function loadReferenceHistory() {
-  const period = {
-    source: "client-slide",
-    start: "2025-11-01",
-    end: "2026-11-06",
-    currentMonth: "2026-11",
-  };
+// The slide includes a partial November 2026 row. From that month on,
+// only whole-account Google Ads observations belong in the chart.
+const firstAdsMonth = "2026-11-01";
+
+async function monthlySeries(
+  period: ReturnType<typeof periods>,
+  query: (q: string) => ReturnType<typeof searchAds>,
+) {
+  const lastMonth = period.end.slice(0, 7) + "-01";
+  const start = shiftMonths(lastMonth, -12);
+  const bounds = { start, end: period.end, currentMonth: period.month };
   try {
-    const content = await readFile(
-      process.env.ETICSA_HISTORY_FILE ||
-        "/opt/agencialabs/eticsa-slide-2026-11.json",
-      "utf8",
-    );
-    return {
-      ...period,
-      status: "available",
-      months: referenceRows.parse(JSON.parse(content)),
-    };
+    const counts = new Map<string, { impressions: number; clicks: number }>();
+    if (start < firstAdsMonth) {
+      const file = await readFile(
+        process.env.ETICSA_HISTORY_FILE ||
+          "/opt/agencialabs/eticsa-slide-2026-11.json",
+        "utf8",
+      );
+      for (const row of referenceRows.parse(JSON.parse(file))) {
+        if (row.month < firstAdsMonth.slice(0, 7)) counts.set(row.month, row);
+      }
+    }
+    const from = start > firstAdsMonth ? start : firstAdsMonth;
+    if (from <= period.end) {
+      const rows = await query(
+        `SELECT segments.month, metrics.impressions, metrics.clicks FROM customer WHERE segments.date BETWEEN '${from}' AND '${period.end}'`,
+      );
+      for (const row of rows) {
+        counts.set(row.segments.month.slice(0, 7), {
+          impressions: Number(row.metrics.impressions ?? 0),
+          clicks: Number(row.metrics.clicks ?? 0),
+        });
+      }
+    }
+    const months = Array.from({ length: 13 }, (_, i) => {
+      const month = shiftMonths(start, i).slice(0, 7);
+      return {
+        month,
+        ...(counts.get(month) ?? { impressions: null, clicks: null }),
+      };
+    });
+    return { ...bounds, status: "available", months };
   } catch {
-    return { ...period, status: "unavailable", months: [] };
+    return { ...bounds, status: "unavailable", months: [] };
   }
 }
 
@@ -77,13 +102,12 @@ export async function GET(request: Request) {
         },
         409,
       );
-    const monthlyHistory = await loadReferenceHistory();
-    if (new URL(request.url).searchParams.get("view") === "monthly") {
-      return json({ monthlyHistory });
-    }
     const period = periods(7, saved.timeZone || "America/Santiago");
     const token = await accessToken(clientId);
     const query = (q: string) => searchAds(token, saved.customerId!, q);
+    const monthlyHistory = await monthlySeries(period, query);
+    if (new URL(request.url).searchParams.get("view") === "monthly")
+      return json({ monthlyHistory });
     const selected = `campaign.id IN (${CAMPAIGN_IDS.join(",")})`;
     const scopeLabel = "Campaña de Busqueda + Pmax Eticsa";
     const campaigns = await query(

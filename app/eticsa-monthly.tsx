@@ -41,7 +41,7 @@ export default function EticsaMonthly({ clientId }: { clientId: string }) {
   return (
     <section className={styles.history} aria-labelledby="monthly-heading">
       <h2 id="monthly-heading">Impresiones y clics por mes</h2>
-      <p>Lámina histórica de Eticsa · Noviembre 2025 a noviembre 2026</p>
+      <p>Histórico de Eticsa · 13 meses</p>
       {error ? (
         <div role="status">
           No se pudo consultar el histórico.{" "}
@@ -53,12 +53,17 @@ export default function EticsaMonthly({ clientId }: { clientId: string }) {
           </button>
         </div>
       ) : !data ? (
-        <p role="status">Cargando la lámina histórica…</p>
+        <p role="status">Cargando el histórico…</p>
       ) : (
         <>
           <p>
-            Noviembre 2025 a octubre 2026: cifras estimadas según la lámina.
-            Noviembre 2026*: solo del 2 al 6.
+            Hasta octubre de 2026: estimaciones de la lámina. Desde noviembre de
+            2026: Google Ads, cuenta completa. Datos hasta el{" "}
+            {new Date(data.end).toLocaleDateString("es-CL", {
+              timeZone: "UTC",
+              dateStyle: "long",
+            })}
+            . {data.end.startsWith(data.currentMonth) && "* Mes parcial."}
           </p>
           <div className={styles.charts}>
             {(["impressions", "clicks"] as const).map((key) => {
@@ -71,7 +76,7 @@ export default function EticsaMonthly({ clientId }: { clientId: string }) {
                   <h3>
                     {key === "impressions" ? "Impresiones" : "Clics"}{" "}
                     <span>
-                      Total de la lámina ·{" "}
+                      Total del período ·{" "}
                       {values.length
                         ? number.format(values.reduce((a, b) => a + b, 0))
                         : "—"}

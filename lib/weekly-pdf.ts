@@ -413,7 +413,7 @@ export function saveWeeklyPdf(
     text("EVOLUCIÓN · 13 MESES", 15, 13, 8, blue, "bold");
     text("Impresiones y clics por mes", 15, 22, 20, dark, "bold");
     text(
-      "Fuente: lámina histórica de Eticsa · Noviembre 2025 a noviembre 2026",
+      `Del ${date(history.start)} al ${date(history.end)} · Desde noviembre 2026: Google Ads, cuenta completa.`,
       15,
       29,
       8,
@@ -431,7 +431,7 @@ export function saveWeeklyPdf(
     footer(7);
     if (history.status !== "available" || history.months.length !== 13) {
       text(
-        "No fue posible cargar la lámina histórica de Eticsa.",
+        "No fue posible cargar el histórico de Eticsa.",
         15,
         58,
         11,
@@ -527,7 +527,9 @@ export function saveWeeklyPdf(
         "bold",
       );
       text(
-        "* Noviembre 2026: reporte del 2 al 6, sin extrapolar al mes.",
+        history.end.startsWith(history.currentMonth)
+          ? `* Mes parcial hasta el ${date(history.end)}. — Sin registros.`
+          : "Meses completos. — Sin registros.",
         12,
         153,
         7,
