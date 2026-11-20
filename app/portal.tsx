@@ -228,7 +228,7 @@ export default function Portal({
       let logo: Uint8Array | undefined;
       if (clientId === "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519") {
         try {
-          const image = await fetch("/client-logos/eticsa.png");
+          const image = await fetch("/client-logos/eticsa-report.png");
           if (image.ok) logo = new Uint8Array(await image.arrayBuffer());
         } catch {
           /* El reporte puede descargarse si el logo no está disponible. */

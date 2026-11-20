@@ -55,13 +55,27 @@ export function saveWeeklyPdf(
     pdf.setFontSize(size);
     pdf.text(s, x, y);
   }
+  function drawClientLogo(x: number, y: number, width: number) {
+    if (!logo?.length) return false;
+    try {
+      // A zero height lets jsPDF preserve the supplied artwork's aspect ratio.
+      pdf.addImage(logo, "PNG", x, y, width, 0, "client-logo", "FAST");
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  function headerBrand() {
+    if (!drawClientLogo(222, -4, 77))
+      text(clientName.toUpperCase().slice(0, 35), 237, 16, 13, blue, "bold");
+  }
   function heading(kicker: string, title: string, subtitle: string) {
     pdf.setFillColor(...blue);
     pdf.rect(9, 9, 1.6, 22, "F");
     text(kicker.toUpperCase(), 15, 13, 8, blue, "bold");
     text(title, 15, 22, 21, dark, "bold");
     text(subtitle, 15, 29, 9, [93, 111, 135]);
-    text(clientName.toUpperCase().slice(0, 35), 237, 16, 13, blue, "bold");
+    headerBrand();
   }
   function footer(page: number) {
     pdf.setDrawColor(220, 227, 235);
@@ -125,14 +139,21 @@ export function saveWeeklyPdf(
   pdf.rect(0, 0, 297, 167, "F");
   pdf.setFillColor(...green);
   pdf.rect(12, 47, 1.7, 38, "F");
-  text(
-    clientName.toUpperCase().slice(0, 45),
-    15,
-    22,
-    20,
-    [255, 255, 255],
-    "bold",
-  );
+  if (logo?.length) {
+    pdf.setFillColor(255, 255, 255);
+    pdf.roundedRect(14, 9, 72, 27, 2, 2, "F");
+    if (!drawClientLogo(2, -3, 96))
+      text(clientName.toUpperCase().slice(0, 20), 19, 26, 16, dark, "bold");
+  } else {
+    text(
+      clientName.toUpperCase().slice(0, 45),
+      15,
+      22,
+      20,
+      [255, 255, 255],
+      "bold",
+    );
+  }
   text("REPORTE  ·  GOOGLE ADS", 20, 50, 9, [76, 235, 177], "bold");
   text("Resultados de Google Ads", 20, 62, 24, [255, 255, 255], "bold");
   text(
@@ -399,15 +420,6 @@ export function saveWeeklyPdf(
   if (report.monthlyHistory) {
     const history = report.monthlyHistory;
     pdf.addPage();
-    let logoShown = false;
-    if (logo?.length) {
-      try {
-        pdf.addImage(logo, "PNG", 235, -8, 50, 50);
-        logoShown = true;
-      } catch {
-        /* The report remains available if the logo cannot be loaded. */
-      }
-    }
     pdf.setFillColor(...blue);
     pdf.rect(9, 9, 1.6, 22, "F");
     text("EVOLUCIÓN · 13 MESES", 15, 13, 8, blue, "bold");
@@ -426,8 +438,7 @@ export function saveWeeklyPdf(
       7.5,
       [75, 94, 119],
     );
-    if (!logoShown)
-      text(clientName.toUpperCase().slice(0, 35), 242, 16, 12, blue, "bold");
+    headerBrand();
     footer(7);
     if (history.status !== "available" || history.months.length !== 13) {
       text(

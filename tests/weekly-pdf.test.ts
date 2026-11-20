@@ -63,7 +63,7 @@ test("el PDF de Eticsa agrega una página histórica sin inventar meses sin dato
   const old = process.cwd();
   try {
     const logo = await readFile(
-      path.join(old, "public/client-logos/eticsa.png"),
+      path.join(old, "public/client-logos/eticsa-report.png"),
     );
     process.chdir(dir);
     saveWeeklyPdf(report, "Eticsa", logo);
