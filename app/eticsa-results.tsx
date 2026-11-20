@@ -18,11 +18,12 @@ const metrics = [
   ["conversions", "Conversiones de WhatsApp atribuidas"],
   ["cpa", "Costo por conversión de WhatsApp"],
 ] as const;
-export function useEticsaResults(clientId: string) {
+export function useEticsaResults(clientId: string, enabled = true) {
   const [data, setData] = useState<EticsaSummary | null>(null),
     [failed, setFailed] = useState(false),
     [attempt, setAttempt] = useState(0);
   useEffect(() => {
+    if (!enabled) return;
     const controller = new AbortController();
     async function load() {
       try {
@@ -47,11 +48,30 @@ export function useEticsaResults(clientId: string) {
       controller.abort();
       clearInterval(timer);
     };
-  }, [clientId, attempt]);
+  }, [clientId, attempt, enabled]);
   return { data, failed, retry: () => setAttempt((a) => a + 1) };
 }
-export default function EticsaResults({ clientId }: { clientId: string }) {
-  const { data, failed, retry } = useEticsaResults(clientId);
+export function EticsaAgencyNote({ note }: { note: EticsaSummary["note"] }) {
+  return (
+    <aside className={css.note}>
+      <h2>Qué hicimos y qué sigue</h2>
+      {note ? (
+        <>
+          <small>{date(note.day)} · AgenciaLabs</small>
+          <h3>{note.title}</h3>
+          <p>{note.body}</p>
+        </>
+      ) : (
+        <p>La agencia aún no ha publicado una gestión en este resumen.</p>
+      )}
+    </aside>
+  );
+}
+export default function EticsaResults({
+  data,
+  failed,
+  retry,
+}: ReturnType<typeof useEticsaResults>) {
   const money = new Intl.NumberFormat("es-CL", {
     style: "currency",
     currency: data?.currency || "CLP",
@@ -130,19 +150,6 @@ export default function EticsaResults({ clientId }: { clientId: string }) {
               </p>
             </div>
           </div>
-          {data.note ? (
-            <aside>
-              <h3>Qué hicimos y qué sigue</h3>
-              <small>{date(data.note.day)} · AgenciaLabs</small>
-              <h4>{data.note.title}</h4>
-              <p>{data.note.body}</p>
-            </aside>
-          ) : (
-            <aside>
-              <h3>Qué hicimos y qué sigue</h3>
-              <p>La agencia aún no ha publicado una gestión en este resumen.</p>
-            </aside>
-          )}
         </div>
       )}
     </section>

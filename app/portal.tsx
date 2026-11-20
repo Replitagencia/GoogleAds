@@ -45,7 +45,7 @@ import { type Report, type Campaign } from "@/lib/demo";
 import { chartByMonth } from "@/lib/reporting";
 import { PerformanceSummary, DashboardInsights } from "./insights";
 import EticsaMobile from "./eticsa-mobile";
-import EticsaResults from "./eticsa-results";
+import EticsaResults, { EticsaAgencyNote, useEticsaResults } from "./eticsa-results";
 import EticsaMonthly from "./eticsa-monthly";
 import Logout from "./logout";
 import AnalyticsPanel from "./ga4";
@@ -122,6 +122,8 @@ export default function Portal({
     [metric, setMetric] = useState("clicks");
   const mobileEticsa = narrow && clientId === "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519" && status?.customerId === "3213724556";
   const showMobile = mobileEticsa && !detailed && view === "overview";
+  const showEticsaSummary = !showMobile && view === "overview" && clientId === "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519" && status?.customerId === "3213724556";
+  const eticsaResults = useEticsaResults(clientId, showEticsaSummary);
   const requestId = useRef(0);
   const originalReport: Report = live || {
     source: "pending",
@@ -606,8 +608,8 @@ export default function Portal({
               </button>
             </div>
           )}
-          {view === "overview" && clientId === "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519" && status?.customerId === "3213724556" && (
-            <><EticsaResults clientId={clientId} /><EticsaMonthly clientId={clientId} /></>
+          {showEticsaSummary && (
+            <><EticsaResults {...eticsaResults} /><EticsaMonthly clientId={clientId} /></>
           )}
           {view !== "connection" ? (
             !status?.customerId ? (
@@ -1392,6 +1394,7 @@ export default function Portal({
               </section>
             </div>
           )}
+          {showEticsaSummary && eticsaResults.data && <EticsaAgencyNote note={eticsaResults.data.note} />}
           <footer>
             <span>
               <BrandCopyright />

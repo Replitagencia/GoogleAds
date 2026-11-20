@@ -165,14 +165,6 @@ export default function EticsaMobile({
                   <b>{num(data.ga4)}</b>
                 </div>
               </div>
-              {data.note && (
-                <section className={css.note}>
-                  <h2>Qué hicimos y qué sigue</h2>
-                  <small>{date(data.note.day)} · AgenciaLabs</small>
-                  <h3>{data.note.title}</h3>
-                  <p>{data.note.body}</p>
-                </section>
-              )}
               <p className={css.foot}>
                 Comparación con el {date(data.beforeStart)} al{" "}
                 {date(data.beforeEnd)}. Importes en {data.currency}.
@@ -208,6 +200,14 @@ export default function EticsaMobile({
             {error && <p role="alert">{error}</p>}
           </section>
         </>
+      )}
+      {tab === "Resumen" && data?.note && (
+        <section className={css.note}>
+          <h2>Qué hicimos y qué sigue</h2>
+          <small>{date(data.note.day)} · AgenciaLabs</small>
+          <h3>{data.note.title}</h3>
+          <p>{data.note.body}</p>
+        </section>
       )}
       <footer className={css.foot}>
         <BrandCopyright />

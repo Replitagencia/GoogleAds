@@ -76,8 +76,7 @@
   font-size: 13px;
   margin-top: 4px;
 }
-.ga,
-.body aside {
+.ga {
   border-top: 1px solid #d8e1ea;
   padding-top: 15px;
   margin-top: 15px;
@@ -91,11 +90,24 @@
   font-size: 22px;
   white-space: nowrap;
 }
-.body aside h4 {
+.note {
+  margin: 20px 0 0;
+  padding: 18px clamp(14px, 2vw, 28px);
+  border: 1px solid #d6e0ea;
+  border-radius: 16px;
+  background: white;
+  color: #172b45;
+}
+.note h2 {
+  font-size: 18px;
+  font-weight: 700;
+}
+.note h3 {
   margin-top: 7px;
   font-weight: 650;
 }
-.body aside p {
+.note p {
+  color: #425970;
   white-space: pre-line;
   overflow-wrap: anywhere;
 }
