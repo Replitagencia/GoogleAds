@@ -1,4 +1,6 @@
 .app {
+  width: 100%;
+  margin: 0;
   box-sizing: border-box;
   background: #f8f9fc;
   min-height: 100dvh;
@@ -229,6 +231,8 @@
   padding: 5px 8px max(8px, env(safe-area-inset-bottom));
 }
 .nav button {
+  padding: 5px 12px;
+  text-align: center;
   display: grid;
   justify-items: center;
   align-content: center;
