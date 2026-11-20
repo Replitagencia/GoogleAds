@@ -44,6 +44,7 @@ import {
 import { type Report, type Campaign } from "@/lib/demo";
 import { chartByMonth } from "@/lib/reporting";
 import { PerformanceSummary, DashboardInsights } from "./insights";
+import EticsaMobile from "./eticsa-mobile";
 import EticsaResults from "./eticsa-results";
 import EticsaMonthly from "./eticsa-monthly";
 import Logout from "./logout";
@@ -88,6 +89,14 @@ export default function Portal({
   userEmail: string;
   previewMode?: boolean;
 }) {
+  const [narrow,setNarrow]=useState(false);
+  const [detailed,setDetailed]=useState(false);
+  useEffect(()=>{
+    const media=window.matchMedia("(max-width: 767px)");
+    const sync=()=>setNarrow(media.matches);
+    sync();media.addEventListener("change",sync);
+    return ()=>media.removeEventListener("change",sync);
+  },[]);
   const api = (path: string) =>
     path +
     (path.includes("?") ? "&" : "?") +
@@ -111,6 +120,8 @@ export default function Portal({
     [selected, setSelected] = useState<Campaign | null>(null),
     [menu, setMenu] = useState(false),
     [metric, setMetric] = useState("clicks");
+  const mobileEticsa = narrow && clientId === "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519" && status?.customerId === "3213724556";
+  const showMobile = mobileEticsa && !detailed && view === "overview";
   const requestId = useRef(0);
   const originalReport: Report = live || {
     source: "pending",
@@ -250,15 +261,15 @@ export default function Portal({
     );
   }, []);
   useEffect(() => {
-    if (status?.customerId) void loadReport();
-  }, [status?.customerId, periodQuery]);
+    if (status?.customerId && !showMobile) void loadReport();
+  }, [status?.customerId, periodQuery, showMobile]);
   useEffect(() => {
-    if (!status?.customerId) return;
+    if (!status?.customerId || showMobile) return;
     const timer = setInterval(() => {
       if (!document.hidden) void loadReport();
     }, 300000);
     return () => clearInterval(timer);
-  }, [status?.customerId, periodQuery]);
+  }, [status?.customerId, periodQuery, showMobile]);
   useEffect(() => {
     const close = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -391,6 +402,7 @@ export default function Portal({
     !report.periodMode ||
     report.periodMode === "7" ||
     report.periodMode === "30";
+  if(showMobile) return <EticsaMobile clientId={clientId} previewMode={previewMode} isAdmin={isAdmin} pdfBusy={pdfBusy} error={error} download={downloadWeeklyPdf} detail={()=>{setDetailed(true);window.scrollTo(0,0);}} />;
   return (
     <div className="app-shell">
       <aside className={`sidebar ${menu ? "open" : ""}`}>
@@ -499,6 +511,7 @@ export default function Portal({
       )}
       <main>
         <div className="client-context">
+          {mobileEticsa && <button className="text-button" onClick={()=>{navigate("overview");setDetailed(false);window.scrollTo(0,0)}}>Inicio móvil</button>}
           <a href={isAdmin || previewMode ? "/admin" : "/"}>
             {previewMode
               ? "← Volver a administración"

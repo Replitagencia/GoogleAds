@@ -18,7 +18,7 @@ const metrics = [
   ["conversions", "Conversiones de WhatsApp atribuidas"],
   ["cpa", "Costo por conversión de WhatsApp"],
 ] as const;
-export default function EticsaResults({ clientId }: { clientId: string }) {
+export function useEticsaResults(clientId: string) {
   const [data, setData] = useState<EticsaSummary | null>(null),
     [failed, setFailed] = useState(false),
     [attempt, setAttempt] = useState(0);
@@ -48,6 +48,10 @@ export default function EticsaResults({ clientId }: { clientId: string }) {
       clearInterval(timer);
     };
   }, [clientId, attempt]);
+  return { data, failed, retry: () => setAttempt((a) => a + 1) };
+}
+export default function EticsaResults({ clientId }: { clientId: string }) {
+  const { data, failed, retry } = useEticsaResults(clientId);
   const money = new Intl.NumberFormat("es-CL", {
     style: "currency",
     currency: data?.currency || "CLP",
@@ -67,11 +71,7 @@ export default function EticsaResults({ clientId }: { clientId: string }) {
       {failed && (
         <p role="status">
           No se pudo actualizar el resumen.{" "}
-          <button
-            type="button"
-            className="button secondary"
-            onClick={() => setAttempt((a) => a + 1)}
-          >
+          <button type="button" className="button secondary" onClick={retry}>
             Reintentar
           </button>
         </p>

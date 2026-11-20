@@ -40,7 +40,7 @@ export async function eticsaSummary(
     const where = range(from, to);
     const [traffic, wa, configured] = await Promise.all([
       query(
-        `SELECT metrics.cost_micros, metrics.clicks FROM customer WHERE ${where}`,
+        `SELECT metrics.impressions, metrics.cost_micros, metrics.clicks FROM customer WHERE ${where}`,
       ),
       query(
         `SELECT segments.conversion_action_name, metrics.conversions FROM customer WHERE ${where}`,
@@ -60,6 +60,10 @@ export async function eticsaSummary(
     );
     return {
       cost,
+      impressions: traffic.reduce(
+        (n, r) => n + Number(r.metrics.impressions ?? 0),
+        0,
+      ),
       clicks: traffic.reduce((n, r) => n + Number(r.metrics.clicks ?? 0), 0),
       conversions,
       cpa: conversions ? cost / conversions : null,

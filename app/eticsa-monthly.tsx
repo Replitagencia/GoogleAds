@@ -10,7 +10,14 @@ const month = new Intl.DateTimeFormat("es-CL", {
   year: "2-digit",
   timeZone: "UTC",
 });
-export default function EticsaMonthly({ clientId }: { clientId: string }) {
+export default function EticsaMonthly({
+  clientId,
+  compact = false,
+}: {
+  clientId: string;
+  compact?: boolean;
+}) {
+  const [metric, setMetric] = useState<"impressions" | "clicks">("impressions");
   const [data, setData] = useState<History | null>(null);
   const [error, setError] = useState(false);
   const [attempt, retry] = useState(0);
@@ -65,64 +72,80 @@ export default function EticsaMonthly({ clientId }: { clientId: string }) {
             })}
             . {data.end.startsWith(data.currentMonth) && "* Mes parcial."}
           </p>
+          {compact && (
+            <div className={styles.switcher}>
+              {(["impressions", "clicks"] as const).map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  aria-pressed={metric === k}
+                  onClick={() => setMetric(k)}
+                >
+                  {k === "impressions" ? "Impresiones" : "Clics"}
+                </button>
+              ))}
+            </div>
+          )}
           <div className={styles.charts}>
-            {(["impressions", "clicks"] as const).map((key) => {
-              const values = data.months.flatMap((row) =>
-                row[key] === null ? [] : [row[key]],
-              );
-              const max = Math.max(1, ...values);
-              return (
-                <div className={styles.card} key={key}>
-                  <h3>
-                    {key === "impressions" ? "Impresiones" : "Clics"}{" "}
-                    <span>
-                      Total del período ·{" "}
-                      {values.length
-                        ? number.format(values.reduce((a, b) => a + b, 0))
-                        : "—"}
-                    </span>
-                  </h3>
-                  <ol className={styles.chart}>
-                    {data.months.map((row) => {
-                      const value = row[key];
-                      const current =
-                        row.month === data.currentMonth.slice(0, 7);
-                      return (
-                        <li
-                          key={row.month}
-                          className={styles.column}
-                          data-current={current}
-                        >
-                          <span className={styles.label}>
-                            {month
-                              .format(new Date(row.month + "-01"))
-                              .replace(" de ", " ")}
-                            {current && "*"}
-                          </span>
-                          <div className={styles.track}>
-                            <div
-                              className={styles.bar}
-                              style={
-                                {
-                                  "--size": ((value ?? 0) / max) * 100 + "%",
-                                } as React.CSSProperties
-                              }
-                            />
-                          </div>
-                          <strong className={styles.value}>
-                            {value === null ? (
-                              <abbr title="Sin registros">—</abbr>
-                            ) : (
-                              number.format(value)
-                            )}
-                          </strong>
-                        </li>
-                      );
-                    })}
-                  </ol>
-                </div>
-              );
-            })}
+            {(["impressions", "clicks"] as const)
+              .filter((k) => !compact || k === metric)
+              .map((key) => {
+                const values = data.months.flatMap((row) =>
+                  row[key] === null ? [] : [row[key]],
+                );
+                const max = Math.max(1, ...values);
+                return (
+                  <div className={styles.card} key={key}>
+                    <h3>
+                      {key === "impressions" ? "Impresiones" : "Clics"}{" "}
+                      <span>
+                        Total del período ·{" "}
+                        {values.length
+                          ? number.format(values.reduce((a, b) => a + b, 0))
+                          : "—"}
+                      </span>
+                    </h3>
+                    <ol className={styles.chart}>
+                      {data.months.map((row) => {
+                        const value = row[key];
+                        const current =
+                          row.month === data.currentMonth.slice(0, 7);
+                        return (
+                          <li
+                            key={row.month}
+                            className={styles.column}
+                            data-current={current}
+                          >
+                            <span className={styles.label}>
+                              {month
+                                .format(new Date(row.month + "-01"))
+                                .replace(" de ", " ")}
+                              {current && "*"}
+                            </span>
+                            <div className={styles.track}>
+                              <div
+                                className={styles.bar}
+                                style={
+                                  {
+                                    "--size": ((value ?? 0) / max) * 100 + "%",
+                                  } as React.CSSProperties
+                                }
+                              />
+                            </div>
+                            <strong className={styles.value}>
+                              {value === null ? (
+                                <abbr title="Sin registros">—</abbr>
+                              ) : (
+                                number.format(value)
+                              )}
+                            </strong>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  </div>
+                );
+              })}
           </div>
         </>
       )}

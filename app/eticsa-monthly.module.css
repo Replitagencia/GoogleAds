@@ -115,3 +115,22 @@
     white-space: nowrap;
   }
 }
+.switcher {
+  display: flex;
+  border-radius: 12px;
+  background: #eaf0f7;
+  padding: 3px;
+  margin-top: 12px;
+}
+.switcher button {
+  flex: 1;
+  border-radius: 9px;
+  min-height: 44px;
+  color: #344563;
+  font-weight: 600;
+}
+.switcher button[aria-pressed="true"] {
+  background: white;
+  color: #1e47a8;
+  box-shadow: 0 1px 4px #17284a22;
+}
