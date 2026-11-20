@@ -413,20 +413,25 @@ export function saveWeeklyPdf(
     text("EVOLUCIÓN · 13 MESES", 15, 13, 8, blue, "bold");
     text("Impresiones y clics por mes", 15, 22, 20, dark, "bold");
     text(
-      `Google Ads · ${date(history.start)} al ${date(history.end)} · Mes actual parcial, hasta ayer`,
+      "Fuente: lámina histórica de Eticsa · Noviembre 2025 a noviembre 2026",
       15,
       29,
       8,
       [75, 94, 119],
     );
-    if (report.scopeLabel)
-      text(`Campañas: ${report.scopeLabel}`, 15, 34, 7.5, [75, 94, 119]);
+    text(
+      "Noviembre 2025 a octubre 2026: cifras estimadas según la lámina.",
+      15,
+      34,
+      7.5,
+      [75, 94, 119],
+    );
     if (!logoShown)
       text(clientName.toUpperCase().slice(0, 35), 242, 16, 12, blue, "bold");
     footer(7);
     if (history.status !== "available" || history.months.length !== 13) {
       text(
-        "No fue posible consultar el historial mensual de Google Ads.",
+        "No fue posible cargar la lámina histórica de Eticsa.",
         15,
         58,
         11,
@@ -434,7 +439,7 @@ export function saveWeeklyPdf(
         "bold",
       );
       text(
-        "Vuelve a descargar el reporte cuando la conexión esté disponible.",
+        "Vuelve a descargar el reporte más tarde.",
         15,
         67,
         10,
@@ -514,7 +519,7 @@ export function saveWeeklyPdf(
       pdf.setFillColor(232, 244, 250);
       pdf.roundedRect(10, 136, 277, 12, 1.5, 1.5, "F");
       text(
-        `TOTAL REGISTRADO: ${number(totals.impressions)} impresiones  ·  ${number(totals.clicks)} clics`,
+        `TOTAL DE LA VENTANA: ${number(totals.impressions)} impresiones  ·  ${number(totals.clicks)} clics`,
         15,
         143,
         10,
@@ -522,7 +527,7 @@ export function saveWeeklyPdf(
         "bold",
       );
       text(
-        "* Mes actual hasta ayer. — Sin registros: puede significar ausencia de actividad o datos.",
+        "* Noviembre 2026: reporte del 2 al 6, sin extrapolar al mes.",
         12,
         153,
         7,

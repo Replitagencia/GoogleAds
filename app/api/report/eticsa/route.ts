@@ -6,11 +6,10 @@ import {
   json,
   searchAds,
 } from "@/lib/google-ads";
-import { periods, shiftMonths, sum, type Metrics } from "@/lib/reporting";
-import {
-  aggregateCampaignDays,
-  aggregateCampaignMonths,
-} from "@/lib/consolidated-report";
+import { periods, sum, type Metrics } from "@/lib/reporting";
+import { aggregateCampaignDays } from "@/lib/consolidated-report";
+import { readFile } from "node:fs/promises";
+import { z } from "zod";
 
 const ETICSA_CLIENT = "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519";
 const ETICSA_ACCOUNT = "3213724556";
@@ -23,6 +22,46 @@ const metrics = (row: any): Metrics => ({
   cost: Number(row.metrics?.costMicros || 0) / 1e6,
   conversions: Number(row.metrics?.conversions || 0),
 });
+
+const referenceRows = z
+  .array(
+    z.object({
+      month: z.string(),
+      impressions: z.number().int().nonnegative(),
+      clicks: z.number().int().nonnegative(),
+    }),
+  )
+  .length(13)
+  .refine((rows) =>
+    rows.every(
+      (r, i) =>
+        r.month ===
+        new Date(Date.UTC(2025, 10 + i, 1)).toISOString().slice(0, 7),
+    ),
+  );
+
+async function loadReferenceHistory() {
+  const period = {
+    source: "client-slide",
+    start: "2025-11-01",
+    end: "2026-11-06",
+    currentMonth: "2026-11",
+  };
+  try {
+    const content = await readFile(
+      process.env.ETICSA_HISTORY_FILE ||
+        "/opt/agencialabs/eticsa-slide-2026-11.json",
+      "utf8",
+    );
+    return {
+      ...period,
+      status: "available",
+      months: referenceRows.parse(JSON.parse(content)),
+    };
+  } catch {
+    return { ...period, status: "unavailable", months: [] };
+  }
+}
 
 export async function GET(request: Request) {
   try {
@@ -38,22 +77,18 @@ export async function GET(request: Request) {
         },
         409,
       );
+    const monthlyHistory = await loadReferenceHistory();
+    if (new URL(request.url).searchParams.get("view") === "monthly") {
+      return json({ monthlyHistory });
+    }
     const period = periods(7, saved.timeZone || "America/Santiago");
     const token = await accessToken(clientId);
     const query = (q: string) => searchAds(token, saved.customerId!, q);
     const selected = `campaign.id IN (${CAMPAIGN_IDS.join(",")})`;
-    const historicalStart = shiftMonths(period.monthStart, -12);
     const scopeLabel = "Campaña de Busqueda + Pmax Eticsa";
-    const historyOnly =
-      new URL(request.url).searchParams.get("view") === "monthly";
-    const [campaigns, monthlyRows] = await Promise.all([
-      query(
-        `SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type FROM campaign WHERE ${selected}`,
-      ),
-      query(
-        `SELECT campaign.id, segments.date, ${fields} FROM campaign WHERE ${selected} AND segments.date BETWEEN '${historicalStart}' AND '${period.end}' ORDER BY segments.date`,
-      ).catch(() => null),
-    ]);
+    const campaigns = await query(
+      `SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type FROM campaign WHERE ${selected}`,
+    );
     const found = new Set(campaigns.map((r) => String(r.campaign?.id)));
     if (CAMPAIGN_IDS.some((id) => !found.has(id)))
       return json(
@@ -63,26 +98,6 @@ export async function GET(request: Request) {
         },
         409,
       );
-    const monthlyHistory = {
-      status: monthlyRows === null ? "unavailable" : "available",
-      start: historicalStart,
-      end: period.end,
-      currentMonth: period.month,
-      months:
-        monthlyRows === null
-          ? []
-          : aggregateCampaignMonths(
-              monthlyRows.map((row) => ({
-                campaignId: String(row.campaign.id),
-                date: row.segments.date,
-                ...metrics(row),
-              })),
-              CAMPAIGN_IDS,
-              period.month,
-            ),
-    };
-    if (historyOnly) return json({ monthlyHistory, scopeLabel });
-
     const history = await query(
       `SELECT campaign.id, segments.date, ${fields} FROM campaign WHERE ${selected} AND segments.date BETWEEN '${period.previousStart}' AND '${period.end}' ORDER BY segments.date`,
     );

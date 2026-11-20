@@ -10,13 +10,6 @@ const month = new Intl.DateTimeFormat("es-CL", {
   year: "2-digit",
   timeZone: "UTC",
 });
-const date = new Intl.DateTimeFormat("es-CL", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  timeZone: "UTC",
-});
-
 export default function EticsaMonthly({ clientId }: { clientId: string }) {
   const [data, setData] = useState<History | null>(null);
   const [error, setError] = useState(false);
@@ -48,7 +41,7 @@ export default function EticsaMonthly({ clientId }: { clientId: string }) {
   return (
     <section className={styles.history} aria-labelledby="monthly-heading">
       <h2 id="monthly-heading">Impresiones y clics por mes</h2>
-      <p>Histórico de 13 meses · Búsqueda + Pmax Eticsa</p>
+      <p>Lámina histórica de Eticsa · Noviembre 2025 a noviembre 2026</p>
       {error ? (
         <div role="status">
           No se pudo consultar el histórico.{" "}
@@ -60,13 +53,12 @@ export default function EticsaMonthly({ clientId }: { clientId: string }) {
           </button>
         </div>
       ) : !data ? (
-        <p role="status">Consultando el histórico de Google Ads…</p>
+        <p role="status">Cargando la lámina histórica…</p>
       ) : (
         <>
           <p>
-            Del {date.format(new Date(data.start))} al{" "}
-            {date.format(new Date(data.end))}. El asterisco indica el mes en
-            curso.
+            Noviembre 2025 a octubre 2026: cifras estimadas según la lámina.
+            Noviembre 2026*: solo del 2 al 6.
           </p>
           <div className={styles.charts}>
             {(["impressions", "clicks"] as const).map((key) => {
@@ -79,7 +71,7 @@ export default function EticsaMonthly({ clientId }: { clientId: string }) {
                   <h3>
                     {key === "impressions" ? "Impresiones" : "Clics"}{" "}
                     <span>
-                      Total registrado ·{" "}
+                      Total de la lámina ·{" "}
                       {values.length
                         ? number.format(values.reduce((a, b) => a + b, 0))
                         : "—"}
