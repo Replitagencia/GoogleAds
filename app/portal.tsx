@@ -33,6 +33,8 @@ import {
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
   ResponsiveContainer,
   Tooltip,
@@ -40,6 +42,7 @@ import {
   YAxis,
 } from "recharts";
 import { type Report, type Campaign } from "@/lib/demo";
+import { chartByMonth } from "@/lib/reporting";
 import { PerformanceSummary, DashboardInsights } from "./insights";
 import Logout from "./logout";
 import AnalyticsPanel from "./ga4";
@@ -90,6 +93,10 @@ export default function Portal({
     encodeURIComponent(clientId);
   const [view, setView] = useState<View>("overview"),
     [days, setDays] = useState(30),
+    [periodChoice, setPeriodChoice] = useState("30"),
+    [periodQuery, setPeriodQuery] = useState("days=30"),
+    [customStart, setCustomStart] = useState(""),
+    [customEnd, setCustomEnd] = useState(""),
     [status, setStatus] = useState<Status | null>(null),
     [live, setLive] = useState<Report | null>(null),
     [busy, setBusy] = useState(false),
@@ -175,7 +182,7 @@ export default function Portal({
     try {
       const r = await fetch(
           api(
-            `/api/report?days=${days}${clientId === "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519" ? "&scope=selected" : ""}`,
+            `/api/report?${periodQuery}${clientId === "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519" ? "&scope=selected" : ""}`,
           ),
         ),
         data = (await r.json()) as Report & { error?: string };
@@ -233,14 +240,14 @@ export default function Portal({
   }, []);
   useEffect(() => {
     if (status?.customerId) void loadReport();
-  }, [status?.customerId, days]);
+  }, [status?.customerId, periodQuery]);
   useEffect(() => {
     if (!status?.customerId) return;
     const timer = setInterval(() => {
       if (!document.hidden) void loadReport();
     }, 300000);
     return () => clearInterval(timer);
-  }, [status?.customerId, days]);
+  }, [status?.customerId, periodQuery]);
   useEffect(() => {
     const close = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -364,9 +371,15 @@ export default function Portal({
     a.click();
     URL.revokeObjectURL(url);
   }
-  const range = demo
-    ? `${days === 7 ? "1 nov" : "9 oct"} – 7 nov 2026`
+  const range = report.insights
+    ? `${report.insights.period.start.split("-").reverse().join("/")} – ${report.insights.period.end.split("-").reverse().join("/")}`
     : `Últimos ${report.days} días completos`;
+  const monthly = report.granularity === "month";
+  const chartData = monthly ? chartByMonth(report.daily) : report.daily;
+  const ga4PeriodSupported =
+    !report.periodMode ||
+    report.periodMode === "7" ||
+    report.periodMode === "30";
   return (
     <div className="app-shell">
       <aside className={`sidebar ${menu ? "open" : ""}`}>
@@ -649,11 +662,28 @@ export default function Portal({
                       <CalendarDays size={16} />
                       <select
                         aria-label="Período del reporte"
-                        value={days}
-                        onChange={(e) => setDays(Number(e.target.value))}
+                        value={periodChoice}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setPeriodChoice(value);
+                          if (value !== "custom") {
+                            if (value === "7" || value === "30")
+                              setDays(Number(value));
+                            setPeriodQuery(
+                              value === "7" || value === "30"
+                                ? `days=${value}`
+                                : `period=${value}`,
+                            );
+                          }
+                        }}
                       >
-                        <option value={30}>Últimos 30 días</option>
-                        <option value={7}>Últimos 7 días</option>
+                        <option value="7">Últimos 7 días</option>
+                        <option value="30">Últimos 30 días</option>
+                        <option value="3m">Últimos 3 meses completos</option>
+                        <option value="6m">Últimos 6 meses completos</option>
+                        <option value="12m">Últimos 12 meses completos</option>
+                        <option value="13m">Últimos 13 meses completos</option>
+                        <option value="custom">Fechas personalizadas</option>
                       </select>
                       <ChevronDown size={14} />
                     </label>
@@ -672,6 +702,43 @@ export default function Portal({
                     </button>
                   </div>
                 </div>
+                {periodChoice === "custom" && (
+                  <form
+                    className="custom-period"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      setPeriodQuery(
+                        `period=custom&start=${encodeURIComponent(customStart)}&end=${encodeURIComponent(customEnd)}`,
+                      );
+                    }}
+                  >
+                    <label>
+                      Desde{" "}
+                      <input
+                        type="date"
+                        required
+                        value={customStart}
+                        onChange={(e) => setCustomStart(e.target.value)}
+                      />
+                    </label>
+                    <label>
+                      Hasta{" "}
+                      <input
+                        type="date"
+                        required
+                        value={customEnd}
+                        onChange={(e) => setCustomEnd(e.target.value)}
+                      />
+                    </label>
+                    <button className="button secondary" type="submit">
+                      Aplicar fechas
+                    </button>
+                    <small>
+                      Hasta 13 meses, dentro de los últimos 24 meses. No incluye
+                      el día en curso.
+                    </small>
+                  </form>
+                )}
                 {report.scopeLabel && (
                   <div className="message" role="status">
                     Campaña de Busqueda incluye Pmax Eticsa; las demás campañas
@@ -698,6 +765,12 @@ export default function Portal({
                           </div>
                           <div className="segmented">
                             <button
+                              className={metric === "cost" ? "selected" : ""}
+                              onClick={() => setMetric("cost")}
+                            >
+                              Inversión
+                            </button>
+                            <button
                               className={metric === "clicks" ? "selected" : ""}
                               onClick={() => setMetric("clicks")}
                             >
@@ -715,87 +788,195 @@ export default function Portal({
                         </div>
                         <div className="chart-legend">
                           <span />
-                          {metric === "clicks" ? "Clics" : "Conversiones"} por
-                          día{demo && <em>· Ejemplo</em>}
+                          {metric === "clicks"
+                            ? "Clics"
+                            : metric === "cost"
+                              ? "Inversión"
+                              : "Conversiones"}{" "}
+                          por
+                          {monthly ? " mes" : " día"}
+                          {demo && <em>· Ejemplo</em>}
                         </div>
                         <div className="chart">
                           <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart
-                              data={report.daily}
-                              margin={{
-                                top: 12,
-                                right: 12,
-                                left: -23,
-                                bottom: 0,
-                              }}
-                            >
-                              <defs>
-                                <linearGradient
-                                  id="chartFill"
-                                  x1="0"
-                                  y1="0"
-                                  x2="0"
-                                  y2="1"
-                                >
-                                  <stop
-                                    offset="0%"
-                                    stopColor="#4f69e8"
-                                    stopOpacity={0.2}
-                                  />
-                                  <stop
-                                    offset="100%"
-                                    stopColor="#4f69e8"
-                                    stopOpacity={0}
-                                  />
-                                </linearGradient>
-                              </defs>
-                              <CartesianGrid
-                                vertical={false}
-                                stroke="#edf0f5"
-                                strokeDasharray="4 4"
-                              />
-                              <XAxis
-                                dataKey="date"
-                                tickFormatter={(v) =>
-                                  String(v).slice(8) +
-                                  "/" +
-                                  String(v).slice(5, 7)
-                                }
-                                axisLine={false}
-                                tickLine={false}
-                                minTickGap={35}
-                                tick={{ fontSize: 11, fill: "#8993a7" }}
-                                dy={8}
-                              />
-                              <YAxis
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fontSize: 11, fill: "#8993a7" }}
-                              />
-                              <Tooltip
-                                labelFormatter={(v) => `Fecha: ${v}`}
-                                formatter={(v) => [
-                                  num(Number(v)),
-                                  metric === "clicks"
-                                    ? "Clics"
-                                    : "Conversiones",
-                                ]}
-                                contentStyle={{
-                                  borderRadius: 12,
-                                  border: "1px solid #e8ebf1",
-                                  fontSize: 12,
+                            {monthly ? (
+                              <BarChart
+                                data={chartData}
+                                margin={{
+                                  top: 12,
+                                  right: 12,
+                                  left: -23,
+                                  bottom: 0,
                                 }}
-                              />
-                              <Area
-                                type="monotone"
-                                dataKey={metric}
-                                stroke="#506be8"
-                                strokeWidth={2.5}
-                                fill="url(#chartFill)"
-                              />
-                            </AreaChart>
+                              >
+                                <CartesianGrid
+                                  vertical={false}
+                                  stroke="#edf0f5"
+                                  strokeDasharray="4 4"
+                                />
+                                <XAxis
+                                  dataKey="date"
+                                  tickFormatter={(v) => {
+                                    const [y, m] = String(v).split("-");
+                                    return `${m}/${y.slice(2)}`;
+                                  }}
+                                  axisLine={false}
+                                  tickLine={false}
+                                  minTickGap={12}
+                                  tick={{ fontSize: 11, fill: "#53627a" }}
+                                  dy={8}
+                                />
+                                <YAxis
+                                  axisLine={false}
+                                  tickLine={false}
+                                  tick={{ fontSize: 11, fill: "#53627a" }}
+                                />
+                                <Tooltip
+                                  labelFormatter={(v) => `Mes: ${v}`}
+                                  formatter={(v) => [
+                                    metric === "cost"
+                                      ? money(Number(v))
+                                      : num(Number(v)),
+                                    metric === "cost"
+                                      ? "Inversión"
+                                      : metric === "clicks"
+                                        ? "Clics"
+                                        : "Conversiones",
+                                  ]}
+                                />
+                                <Bar
+                                  dataKey={metric}
+                                  fill="#506be8"
+                                  radius={[4, 4, 0, 0]}
+                                />
+                              </BarChart>
+                            ) : (
+                              <AreaChart
+                                data={chartData}
+                                margin={{
+                                  top: 12,
+                                  right: 12,
+                                  left: -23,
+                                  bottom: 0,
+                                }}
+                              >
+                                <defs>
+                                  <linearGradient
+                                    id="chartFill"
+                                    x1="0"
+                                    y1="0"
+                                    x2="0"
+                                    y2="1"
+                                  >
+                                    <stop
+                                      offset="0%"
+                                      stopColor="#4f69e8"
+                                      stopOpacity={0.2}
+                                    />
+                                    <stop
+                                      offset="100%"
+                                      stopColor="#4f69e8"
+                                      stopOpacity={0}
+                                    />
+                                  </linearGradient>
+                                </defs>
+                                <CartesianGrid
+                                  vertical={false}
+                                  stroke="#edf0f5"
+                                  strokeDasharray="4 4"
+                                />
+                                <XAxis
+                                  dataKey="date"
+                                  tickFormatter={(v) =>
+                                    String(v).slice(8) +
+                                    "/" +
+                                    String(v).slice(5, 7)
+                                  }
+                                  axisLine={false}
+                                  tickLine={false}
+                                  minTickGap={35}
+                                  tick={{ fontSize: 11, fill: "#8993a7" }}
+                                  dy={8}
+                                />
+                                <YAxis
+                                  axisLine={false}
+                                  tickLine={false}
+                                  tick={{ fontSize: 11, fill: "#8993a7" }}
+                                />
+                                <Tooltip
+                                  labelFormatter={(v) => `Fecha: ${v}`}
+                                  formatter={(v) => [
+                                    metric === "cost"
+                                      ? money(Number(v))
+                                      : num(Number(v)),
+                                    metric === "cost"
+                                      ? "Inversión"
+                                      : metric === "clicks"
+                                        ? "Clics"
+                                        : "Conversiones",
+                                  ]}
+                                  contentStyle={{
+                                    borderRadius: 12,
+                                    border: "1px solid #e8ebf1",
+                                    fontSize: 12,
+                                  }}
+                                />
+                                <Area
+                                  type="monotone"
+                                  dataKey={metric}
+                                  stroke="#506be8"
+                                  strokeWidth={2.5}
+                                  fill="url(#chartFill)"
+                                />
+                              </AreaChart>
+                            )}
                           </ResponsiveContainer>
                         </div>
+                        {monthly && (
+                          <>
+                            <p className="chart-availability">
+                              Los meses sin registros de Google Ads aparecen en
+                              cero y pueden corresponder a períodos sin
+                              actividad o sin datos disponibles. Los meses
+                              parciales se limitan a las fechas seleccionadas.
+                            </p>
+                            <details className="monthly-details">
+                              <summary>Ver resultados por mes</summary>
+                              <div className="table-scroll">
+                                <table>
+                                  <thead>
+                                    <tr>
+                                      <th>Mes</th>
+                                      <th>Inversión</th>
+                                      <th>Clics</th>
+                                      <th>Conversiones</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {chartData.map((row) => (
+                                      <tr key={row.date}>
+                                        <td>
+                                          {new Intl.DateTimeFormat("es-CL", {
+                                            month: "long",
+                                            year: "numeric",
+                                            timeZone: "UTC",
+                                          }).format(
+                                            new Date(
+                                              `${row.date}-01T12:00:00Z`,
+                                            ),
+                                          )}
+                                        </td>
+                                        <td>{money(row.cost)}</td>
+                                        <td>{num(row.clicks)}</td>
+                                        <td>{num(row.conversions)}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </details>
+                          </>
+                        )}
                       </section>
                       <section className="panel distribution">
                         <div className="panel-heading">
@@ -986,13 +1167,20 @@ export default function Portal({
                     <span>Moneda: {report.currency}</span>
                   </div>
                 </section>
-                {view === "overview" && (
-                  <AnalyticsPanel
-                    clientId={clientId}
-                    isAdmin={isAdmin}
-                    days={days}
-                  />
-                )}
+                {view === "overview" &&
+                  (ga4PeriodSupported ? (
+                    <AnalyticsPanel
+                      clientId={clientId}
+                      isAdmin={isAdmin}
+                      days={report.days}
+                    />
+                  ) : (
+                    <section className="panel insight-empty">
+                      Google Analytics 4 está disponible en los períodos de 7 y
+                      30 días. Para períodos más largos, esta vista muestra
+                      datos de Google Ads.
+                    </section>
+                  ))}
                 {view === "overview" && (
                   <DashboardInsights
                     key={report.customerId}

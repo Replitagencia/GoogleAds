@@ -135,8 +135,10 @@ export function PerformanceSummary({
           {date(report.insights.period.start)} –{" "}
           {date(report.insights.period.end)} frente a{" "}
           {date(report.insights.period.previousStart)} –{" "}
-          {date(report.insights.period.previousEnd)} · Períodos de {report.days}{" "}
-          días completos
+          {date(report.insights.period.previousEnd)} ·{" "}
+          {report.periodMode?.endsWith("m")
+            ? "Meses calendario completos"
+            : "Días completos"}
         </p>
       )}
     </>
@@ -418,9 +420,7 @@ export function DashboardInsights({
               Inversión publicitaria, sin honorarios
             </p>
           </div>
-          <span className="badge">
-            Independiente del filtro de {report.days} días
-          </span>
+          <span className="badge">Independiente del período seleccionado</span>
         </div>
         <div className="budget-body">
           <div>
@@ -518,7 +518,16 @@ export function DashboardInsights({
             </div>
           </div>
           <div className="conversion-summary" style={{ display: "block" }}>
-            <WhatsappAnalytics clientId={clientId} days={report.days} />
+            {!report.periodMode ||
+            report.periodMode === "7" ||
+            report.periodMode === "30" ? (
+              <WhatsappAnalytics clientId={clientId} days={report.days} />
+            ) : (
+              <div>
+                Clics de WhatsApp en GA4: disponibles al seleccionar 7 o 30
+                días.
+              </div>
+            )}
             {insights.unavailable.includes("conversions") ||
             insights.unavailable.includes("conversionMetrics") ? (
               <span>Datos de conversiones no disponibles en este momento.</span>

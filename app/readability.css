@@ -170,3 +170,24 @@
 .brand-footer { margin-top: 32px; padding: 20px 0; border-top: 1px solid #dfe5ed; color: #53627a; font-size: 12px; line-height: 1.5; }
 .app-shell footer { flex-wrap: wrap; gap: 8px 20px; font-size: 12px; line-height: 1.5; }
 .auth-main > small { text-align: center; line-height: 1.5; }
+
+.custom-period { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin: 0 0 18px; padding: 16px; background: white; border: 1px solid #dce3ed; border-radius: 8px; }
+.custom-period label { display: grid; gap: 5px; color: #354a65; font-size: 12px; font-weight: 600; }
+.custom-period input { min-height: 42px; min-width: 0; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; background: white; color: #263a52; font: inherit; }
+.custom-period small { flex-basis: 100%; color: #53627a; font-size: 12px; line-height: 1.5; }
+@media (max-width: 680px) { .custom-period label { flex: 1 1 135px; } .custom-period input { width: 100%; } .custom-period button { min-height: 42px; } }
+
+.chart-availability { margin: 4px 20px 12px; color: #53627a; font-size: 12px; line-height: 1.5; }
+.monthly-details { margin: 0 20px 20px; }
+.monthly-details summary { cursor: pointer; color: #314bb9; font-size: 13px; font-weight: 600; padding: 10px 0; }
+.monthly-details .table-scroll { max-width: 100%; }
+@media (max-width: 680px) { .chart-availability { margin: 5px 15px 12px; } .monthly-details { margin: 0 15px 16px; } }
+
+@media (max-width: 680px) {
+  .app-shell .filters-bar { flex-wrap: wrap; gap: 12px; }
+  .app-shell .date-controls { width: 100%; }
+  .app-shell .date-controls .date-select { min-width: 0; flex: 1; }
+  .app-shell .date-controls .date-select select { max-width: none; min-width: 0; width: 100%; }
+  .app-shell .performance .panel-heading { flex-wrap: wrap; }
+  .app-shell .performance .segmented button { font-size: 12px; min-height: 40px; padding: 7px 10px; }
+}

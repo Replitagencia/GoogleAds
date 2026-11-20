@@ -108,3 +108,106 @@ export function measurementMessage(
     return "Hay acciones configuradas, pero Google no registra conversiones atribuidas en este período. Esto no confirma que las etiquetas funcionen ni que no hayan llegado contactos.";
   return "Google registra conversiones en este período. Son acciones atribuidas a anuncios; no necesariamente personas únicas ni ventas confirmadas.";
 }
+
+/** Shift calendar months and clamp days at the end of the destination month. */
+export function shiftMonths(date: string, amount: number) {
+  const [year, month, day] = date.split("-").map(Number);
+  const first = new Date(Date.UTC(year, month - 1 + amount, 1, 12));
+  const lastDay = new Date(
+    Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  first.setUTCDate(Math.min(day, lastDay));
+  return first.toISOString().slice(0, 10);
+}
+
+/** Periods exclude the account's current partial day. Month presets use full calendar months. */
+export function reportPeriod(
+  params: URLSearchParams,
+  timeZone: string,
+  now = new Date(),
+) {
+  const base = periods(30, timeZone, now);
+  const mode =
+    params.get("period") || (params.get("days") === "7" ? "7" : "30");
+  if (mode === "7" || mode === "30") {
+    const days = Number(mode);
+    return {
+      ...periods(days, timeZone, now),
+      days,
+      mode,
+      granularity: "day" as const,
+    };
+  }
+  const months = (
+    { "3m": 3, "6m": 6, "12m": 12, "13m": 13 } as Record<string, number>
+  )[mode];
+  if (months) {
+    const first = new Date(base.monthStart + "T12:00:00Z");
+    const monthAt = (offset: number) =>
+      new Date(
+        Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + offset, 1, 12),
+      )
+        .toISOString()
+        .slice(0, 10);
+    const start = monthAt(-months);
+    const end = shiftDate(base.monthStart, -1);
+    const previousStart = monthAt(-2 * months);
+    const previousEnd = shiftDate(start, -1);
+    const days =
+      Math.round((Date.parse(end) - Date.parse(start)) / 86400000) + 1;
+    return {
+      ...base,
+      start,
+      end,
+      previousStart,
+      previousEnd,
+      historyStart: previousStart,
+      days,
+      mode,
+      granularity: "month" as const,
+    };
+  }
+  if (mode !== "custom") throw new Error("Período no válido.");
+  const start = params.get("start") || "";
+  const end = params.get("end") || "";
+  const valid = (v: string) =>
+    /^\d{4}-\d{2}-\d{2}$/.test(v) &&
+    !Number.isNaN(Date.parse(v + "T12:00:00Z")) &&
+    new Date(v + "T12:00:00Z").toISOString().slice(0, 10) === v;
+  if (!valid(start) || !valid(end) || start > end || end >= base.today)
+    throw new Error(
+      "Selecciona fechas válidas hasta ayer, con inicio anterior al final.",
+    );
+  const days = Math.round((Date.parse(end) - Date.parse(start)) / 86400000) + 1;
+  const previousEnd = shiftDate(start, -1);
+  const previousStart = shiftDate(start, -days);
+  if (
+    end >= shiftMonths(start, 13) ||
+    start < shiftMonths(base.today, -24) ||
+    previousStart < shiftMonths(base.today, -37)
+  )
+    throw new Error(
+      "Elige hasta 13 meses dentro de los últimos 24 meses; el período anterior debe estar disponible para su comparación.",
+    );
+  return {
+    ...base,
+    start,
+    end,
+    previousStart,
+    previousEnd,
+    historyStart: previousStart,
+    days,
+    mode,
+    granularity: days > 62 ? ("month" as const) : ("day" as const),
+  };
+}
+
+/** Aggregate only the requested days, retaining partial first/last months. */
+export function chartByMonth<T extends Metrics & { date: string }>(daily: T[]) {
+  const byMonth = new Map<string, Metrics>();
+  for (const row of daily) {
+    const month = row.date.slice(0, 7);
+    byMonth.set(month, sum([byMonth.get(month) || zero(), row]));
+  }
+  return [...byMonth].map(([date, values]) => ({ date, ...values }));
+}

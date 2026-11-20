@@ -259,6 +259,28 @@ test("la vista consolidada usa una caché separada y respeta los permisos", asyn
     assert.equal(
       (
         await request(
+          `/api/report?period=custom&start=not-a-date&end=2026-11-01&scope=selected&clientId=${id}`,
+          "GET",
+          undefined,
+          cookieA,
+        )
+      ).status,
+      400,
+    );
+    assert.equal(
+      (
+        await request(
+          `/api/report?period=13m&scope=selected&clientId=${id}`,
+          "GET",
+          undefined,
+          cookieB,
+        )
+      ).status,
+      404,
+    );
+    assert.equal(
+      (
+        await request(
           `/api/report?days=30&scope=selected&clientId=${id}`,
           "GET",
           undefined,

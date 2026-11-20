@@ -18,6 +18,8 @@ export type Report = {
   fetchedAt: string;
   days: number;
   scopeLabel?: string;
+  periodMode?: string;
+  granularity?: "day" | "month";
   insights?: Insights;
   campaigns: Campaign[];
   daily: {

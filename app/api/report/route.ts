@@ -11,7 +11,8 @@ import { getDb } from "@/db";
 import { reportCache } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import {
-  periods,
+  reportPeriod,
+  shiftDate,
   sum,
   zero,
   type Metrics,
@@ -49,9 +50,18 @@ export async function GET(request: Request) {
       );
     const campaignIds = ["23169711798", "23461440880"];
     const scopeFilter = "";
-    const days = params.get("days") === "7" ? 7 : 30;
-    const period = periods(days, saved.timeZone || "America/Santiago");
-    const cacheId = `${scoped ? "grouped-v2" : "v2"}:${clientId}:${saved.customerId}:${saved.updatedAt}:${days}:${period.today}`;
+    let period;
+    try {
+      period = reportPeriod(params, saved.timeZone || "America/Santiago");
+    } catch (error) {
+      return json({ error: errorMessage(error) }, 400);
+    }
+    const days = period.days;
+    const periodKey =
+      period.mode === "7" || period.mode === "30"
+        ? String(days)
+        : `${period.mode}:${period.start}:${period.end}`;
+    const cacheId = `${scoped ? "grouped-v2" : "v2"}:${clientId}:${saved.customerId}:${saved.updatedAt}:${periodKey}:${period.today}`;
     const cached = await getDb()
       .select()
       .from(reportCache)
@@ -77,9 +87,9 @@ export async function GET(request: Request) {
               `SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type FROM campaign`,
             )
           : Promise.resolve([]),
-        scoped && period.elapsedDays > 0
+        period.elapsedDays > 0
           ? query(
-              `SELECT metrics.cost_micros FROM customer WHERE segments.date BETWEEN '${period.monthStart}' AND '${period.end}'`,
+              `SELECT metrics.cost_micros FROM customer WHERE segments.date BETWEEN '${period.monthStart}' AND '${shiftDate(period.today, -1)}'`,
             )
           : Promise.resolve([]),
       ]);
@@ -279,6 +289,8 @@ export async function GET(request: Request) {
       timeZone: saved.timeZone,
       fetchedAt: new Date().toISOString(),
       days,
+      periodMode: period.mode,
+      granularity: period.granularity,
       ...(scoped ? { scopeLabel: "Campaña de Busqueda + Pmax Eticsa" } : {}),
       campaigns: scoped
         ? mergeCampaignPair(campaignList, campaignIds[0], campaignIds[1])
@@ -299,9 +311,7 @@ export async function GET(request: Request) {
               r.date >= period.previousStart && r.date <= period.previousEnd,
           ),
         ),
-        monthCost: scoped
-          ? sum(accountMonth.map(metrics)).cost
-          : sum(history.filter((r) => r.date >= period.monthStart)).cost,
+        monthCost: sum(accountMonth.map(metrics)).cost,
         devices: [...devices.values()],
         locations: [...locations.values()].sort((a, b) => b.clicks - a.clicks),
         keywords: keywordRows.map((r) => ({
