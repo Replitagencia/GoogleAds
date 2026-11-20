@@ -79,6 +79,19 @@ test("el PDF de Eticsa agrega una página histórica sin inventar meses sin dato
     assert.match(content, /cuenta completa/);
     assert.match(content, /7\.600 impresiones/);
     assert.match(content, /760 clics/);
+    report.agencyNote = {
+      title: "Seguimiento publicado",
+      body: "Revisaremos los contactos del catálogo.",
+      day: "2026-11-19",
+    };
+    saveWeeklyPdf(report, "Eticsa", logo);
+    const withNote = (
+      await readFile(
+        path.join(dir, `Reporte-Google-Ads-${period.start}-${period.end}.pdf`),
+      )
+    ).toString("latin1");
+    assert.equal((withNote.match(/\/Type \/Page\b/g) || []).length, 8);
+    assert.match(withNote, /Seguimiento publicado/);
   } finally {
     process.chdir(old);
     await rm(dir, { recursive: true, force: true });

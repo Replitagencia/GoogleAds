@@ -74,7 +74,7 @@ export function saveWeeklyPdf(
       [113, 130, 149],
     );
     text(
-      `${page} / ${report.monthlyHistory ? 7 : 6}`,
+      `${page} / ${6 + Number(Boolean(report.monthlyHistory)) + Number(Boolean(report.agencyNote))}`,
       278,
       161,
       7,
@@ -536,6 +536,27 @@ export function saveWeeklyPdf(
         [75, 94, 119],
       );
     }
+  }
+  if (report.agencyNote) {
+    const note = report.agencyNote;
+    page(
+      "AgenciaLabs",
+      "Qué hicimos y qué sigue",
+      date(note.day),
+      report.monthlyHistory ? 8 : 7,
+    );
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(13);
+    pdf.setTextColor(...dark);
+    const titleLines = pdf.splitTextToSize(
+      note.title.replace(/\s+/g, " "),
+      258,
+    );
+    pdf.text(titleLines, 15, 47);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(10);
+    const bodyLines = pdf.splitTextToSize(note.body.replace(/\s+/g, " "), 258);
+    pdf.text(bodyLines, 15, 54 + titleLines.length * 5);
   }
   pdf.save(`Reporte-Google-Ads-${p.start}-${p.end}.pdf`);
 }

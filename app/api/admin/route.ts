@@ -28,7 +28,7 @@ export async function GET(request: Request) {
           "SELECT client_id,customer_id,month,amount FROM account_budgets",
         ),
         getPool().query(
-          "SELECT * FROM (SELECT history.*,row_number() OVER (PARTITION BY client_id ORDER BY created_at DESC) AS position FROM (SELECT 'internal:'||l.id AS id,l.client_id,l.kind,l.title,l.body,l.created_at,u.name AS author_name,false AS shared FROM agency_work_log l JOIN \"user\" u ON u.id=l.author_id UNION ALL SELECT 'shared:'||a.id AS id,a.client_id,a.kind,a.title,a.body,to_timestamp(a.created_at / 1000.0) AS created_at,'AgenciaLabs' AS author_name,true AS shared FROM agency_activities a JOIN google_connections g ON g.client_id=a.client_id AND g.customer_id=a.customer_id) history) ranked WHERE position <= 100 ORDER BY created_at DESC",
+          "SELECT * FROM (SELECT history.*,row_number() OVER (PARTITION BY client_id ORDER BY created_at DESC) AS position FROM (SELECT 'internal:'||l.id AS id,l.client_id,l.kind,l.title,l.body,l.created_at,u.name AS author_name,(l.shared_customer_id IS NOT NULL) AS shared FROM agency_work_log l JOIN \"user\" u ON u.id=l.author_id UNION ALL SELECT 'shared:'||a.id AS id,a.client_id,a.kind,a.title,a.body,to_timestamp(a.created_at / 1000.0) AS created_at,'AgenciaLabs' AS author_name,true AS shared FROM agency_activities a JOIN google_connections g ON g.client_id=a.client_id AND g.customer_id=a.customer_id) history) ranked WHERE position <= 100 ORDER BY created_at DESC",
         ),
       ]);
     return json({
@@ -115,6 +115,21 @@ export async function POST(request: Request) {
       if (!result.rowCount) throw new AccessError("Tarea no disponible.", 404);
       return json({ ok: true });
     }
+    if (body.action === "work-log-visibility") {
+      if (
+        body.clientId !== "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519" ||
+        typeof body.shared !== "boolean" ||
+        typeof body.id !== "string"
+      )
+        throw new AccessError("Gestión inválida.", 400);
+      const changed = await getPool().query(
+        "UPDATE agency_work_log SET shared_customer_id=CASE WHEN $3::boolean THEN '3213724556' END WHERE id=$1 AND client_id=$2 RETURNING id",
+        [body.id, body.clientId, body.shared],
+      );
+      if (!changed.rowCount)
+        throw new AccessError("Gestión no disponible.", 404);
+      return json({ ok: true });
+    }
     if (body.action === "work-log-add") {
       if (
         typeof body.clientId !== "string" ||
@@ -127,7 +142,7 @@ export async function POST(request: Request) {
       )
         throw new AccessError("Datos de la gestión inválidos.", 400);
       const result = await getPool().query(
-        "INSERT INTO agency_work_log(id,client_id,author_id,kind,title,body) SELECT $1,id,$3,$4,$5,$6 FROM clients WHERE id=$2 RETURNING id",
+        "INSERT INTO agency_work_log(id,client_id,author_id,kind,title,body,shared_customer_id) SELECT $1,id,$3,$4,$5,$6,$7 FROM clients WHERE id=$2 RETURNING id",
         [
           randomUUID(),
           body.clientId,
@@ -135,6 +150,10 @@ export async function POST(request: Request) {
           body.kind,
           body.title.trim(),
           body.body.trim(),
+          body.shared === true &&
+          body.clientId === "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519"
+            ? "3213724556"
+            : null,
         ],
       );
       if (!result.rowCount)

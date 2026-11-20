@@ -119,3 +119,5 @@ CREATE TABLE IF NOT EXISTS ga4_oauth_states (
  state text PRIMARY KEY, user_id text NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
  client_id text NOT NULL REFERENCES clients(id) ON DELETE CASCADE, expires_at bigint NOT NULL
 );
+
+ALTER TABLE agency_work_log ADD COLUMN IF NOT EXISTS shared_customer_id text;

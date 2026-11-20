@@ -1,0 +1,114 @@
+.summary {
+  margin-bottom: 22px;
+  border: 1px solid #d6e0ea;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  color: #172b45;
+  min-width: 0;
+}
+.summary header {
+  background: #112f4d;
+  color: #fff;
+  padding: 22px clamp(16px, 3vw, 30px);
+}
+.summary header small {
+  font-size: 12px;
+  color: #8aebd8;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+}
+.summary header h2 {
+  font-size: clamp(26px, 3vw, 38px);
+  color: white;
+  margin: 7px 0 0;
+  line-height: 1.15;
+}
+.summary header p {
+  color: #dbe8f1;
+  margin: 5px 0 0;
+}
+.body,
+.summary > p {
+  padding: 18px clamp(14px, 2vw, 28px);
+}
+.body h3 {
+  font-size: 18px;
+  color: #172b45;
+  font-weight: 700;
+}
+.body p,
+.body small {
+  color: #425970;
+}
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 15px 0;
+}
+.metric {
+  border: 1px solid #d9e2ea;
+  border-radius: 10px;
+  padding: 12px;
+  overflow-wrap: anywhere;
+}
+.metric[data-focus="true"] {
+  background: #e9f7f4;
+  border-color: #8dcbbd;
+}
+.metric h4 {
+  font-size: 14px;
+  min-height: 40px;
+  color: #40526a;
+}
+.metric strong,
+.ga strong {
+  display: block;
+  color: #172b45;
+  font-size: clamp(22px, 2.4vw, 34px);
+  font-weight: 700;
+}
+.metric small,
+.metric span {
+  display: block;
+  color: #40526a;
+  font-size: 13px;
+  margin-top: 4px;
+}
+.ga,
+.body aside {
+  border-top: 1px solid #d8e1ea;
+  padding-top: 15px;
+  margin-top: 15px;
+}
+.ga {
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+}
+.ga strong {
+  font-size: 22px;
+  white-space: nowrap;
+}
+.body aside h4 {
+  margin-top: 7px;
+  font-weight: 650;
+}
+.body aside p {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 900px) {
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 540px) {
+  .ga {
+    display: block;
+  }
+  .metric {
+    padding: 9px;
+  }
+}

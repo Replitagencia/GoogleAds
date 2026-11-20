@@ -8,6 +8,7 @@ import {
 } from "@/lib/google-ads";
 import { periods, shiftMonths, sum, type Metrics } from "@/lib/reporting";
 import { aggregateCampaignDays } from "@/lib/consolidated-report";
+import { eticsaSummary, latestSharedNote } from "@/lib/eticsa-summary";
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
 
@@ -105,6 +106,17 @@ export async function GET(request: Request) {
     const period = periods(7, saved.timeZone || "America/Santiago");
     const token = await accessToken(clientId);
     const query = (q: string) => searchAds(token, saved.customerId!, q);
+    if (new URL(request.url).searchParams.get("view") === "summary")
+      return json(
+        await eticsaSummary(
+          clientId,
+          ETICSA_ACCOUNT,
+          saved.timeZone || "America/Santiago",
+          period.end,
+          saved.currency || "CLP",
+          query,
+        ),
+      );
     const monthlyHistory = await monthlySeries(period, query);
     if (new URL(request.url).searchParams.get("view") === "monthly")
       return json({ monthlyHistory });
@@ -165,6 +177,11 @@ export async function GET(request: Request) {
     );
     return json({
       source: "google",
+      agencyNote: await latestSharedNote(
+        clientId,
+        ETICSA_ACCOUNT,
+        saved.timeZone || "America/Santiago",
+      ),
       accountName: saved.accountName,
       customerId: saved.customerId,
       currency: saved.currency,

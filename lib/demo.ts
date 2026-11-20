@@ -17,6 +17,7 @@ export type Report = {
   timeZone: string;
   fetchedAt: string;
   days: number;
+  agencyNote?: { title: string; body: string; day: string } | null;
   scopeLabel?: string;
   periodMode?: string;
   granularity?: "day" | "month";

@@ -219,10 +219,7 @@ function WorkLog({
   return (
     <details className="client-profile">
       <summary>Gestiones y optimizaciones · {entries.length}</summary>
-      <p>
-        Las nuevas gestiones registradas aquí son internas. Las compartidas con
-        el cliente aparecen identificadas.
-      </p>
+      <p>Las gestiones son internas salvo que se marquen como compartidas.</p>
       <form
         className="agency-log-form"
         onSubmit={(e) => {
@@ -232,6 +229,7 @@ function WorkLog({
           void save({
             action: "work-log-add",
             clientId: id,
+            shared: f.has("shared"),
             kind: f.get("kind"),
             title: f.get("title"),
             body: f.get("body"),
@@ -255,6 +253,12 @@ function WorkLog({
           Detalle
           <textarea name="body" maxLength={2000} />
         </label>
+        {id === "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519" && (
+          <label>
+            <input type="checkbox" name="shared" /> Visible para Eticsa en el
+            Resumen y el PDF
+          </label>
+        )}
         <button className="button secondary" disabled={busy}>
           Registrar gestión
         </button>
@@ -283,6 +287,25 @@ function WorkLog({
                 {new Date(e.created_at).toLocaleString("es-CL")}
               </small>
               {e.body && <p>{e.body}</p>}
+              {id === "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519" &&
+                e.id.startsWith("internal:") && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() =>
+                      void save({
+                        action: "work-log-visibility",
+                        clientId: id,
+                        id: e.id.slice(9),
+                        shared: !e.shared,
+                      })
+                    }
+                  >
+                    {e.shared
+                      ? "Ocultar del resumen"
+                      : "Compartir en resumen y PDF"}
+                  </button>
+                )}
             </article>
           ))}
         </div>

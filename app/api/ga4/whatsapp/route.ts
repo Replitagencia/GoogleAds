@@ -1,8 +1,9 @@
 import { requireClient, AccessError, apiError } from "@/lib/access";
-import { ga4AccessToken, ga4Connection, ga4Fetch } from "@/lib/ga4";
+import { ga4Connection } from "@/lib/ga4";
 import { json, errorMessage } from "@/lib/google-ads";
 import { periods } from "@/lib/reporting";
 
+import { whatsappEvents } from "@/lib/ga4-whatsapp";
 export async function GET(request: Request) {
   try {
     const { clientId } = await requireClient(request);
@@ -13,36 +14,8 @@ export async function GET(request: Request) {
       return json({ available: false });
     const days = new URL(request.url).searchParams.get("days") === "7" ? 7 : 30;
     const p = periods(days, connection.time_zone || "America/Santiago");
-    const token = await ga4AccessToken(clientId);
-    const data = (await ga4Fetch(
-      `https://analyticsdata.googleapis.com/v1beta/properties/${connection.property_id}:runReport`,
-      token,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: AbortSignal.timeout(12000),
-        body: JSON.stringify({
-          dateRanges: [{ startDate: p.start, endDate: p.end }],
-          dimensions: [{ name: "eventName" }],
-          metrics: [{ name: "eventCount" }],
-          dimensionFilter: {
-            filter: {
-              fieldName: "eventName",
-              stringFilter: {
-                matchType: "EXACT",
-                value: "Bton_Whatsapp",
-                caseSensitive: true,
-              },
-            },
-          },
-        }),
-      },
-    )) as { rows?: { metricValues: { value: string }[] }[] };
-    const raw = data.rows?.[0]?.metricValues?.[0]?.value;
-    if (raw === undefined) return json({ available: false });
-    const count = Number(raw);
-    if (!Number.isSafeInteger(count) || count < 0)
-      return json({ available: false });
+    const count = await whatsappEvents(clientId, p.start, p.end);
+    if (count === null) return json({ available: false });
     return json({
       available: true,
       count,
