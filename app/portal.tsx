@@ -111,7 +111,7 @@ export default function Portal({
     [status, setStatus] = useState<Status | null>(null),
     [live, setLive] = useState<Report | null>(null),
     [busy, setBusy] = useState(false),
-    [pdfBusy, setPdfBusy] = useState(false),
+    [reportBusy, setReportBusy] = useState<"pdf" | "pptx" | null>(null),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [query, setQuery] = useState(""),
@@ -120,9 +120,10 @@ export default function Portal({
     [selected, setSelected] = useState<Campaign | null>(null),
     [menu, setMenu] = useState(false),
     [metric, setMetric] = useState("clicks");
-  const mobileEticsa = narrow && clientId === "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519" && status?.customerId === "3213724556";
+  const isEticsa = clientId === "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519";
+  const mobileEticsa = narrow && isEticsa && status?.customerId === "3213724556";
   const showMobile = mobileEticsa && !detailed && view === "overview";
-  const showEticsaSummary = !showMobile && view === "overview" && clientId === "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519" && status?.customerId === "3213724556";
+  const showEticsaSummary = !showMobile && view === "overview" && isEticsa && status?.customerId === "3213724556";
   const eticsaResults = useEticsaResults(clientId, showEticsaSummary);
   const requestId = useRef(0);
   const originalReport: Report = live || {
@@ -210,23 +211,39 @@ export default function Portal({
       if (id === requestId.current) setBusy(false);
     }
   }
-  async function downloadWeeklyPdf() {
-    setPdfBusy(true);
+  async function downloadReport(format: "pdf" | "pptx") {
+    setReportBusy(format);
     setError("");
     try {
       const response = await fetch(
         api(
-          clientId === "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519"
-            ? "/api/report/eticsa"
+          isEticsa
+            ? "/api/report/eticsa?format=" + format
             : "/api/report?days=7",
         ),
       );
-      const data = (await response.json()) as Report & { error?: string };
-      if (!response.ok)
-        throw new Error(data.error || "No se pudo consultar el reporte.");
+      if (!response.ok) {
+        const failure = await response.json();
+        throw new Error(failure.error || "No se pudo consultar el reporte.");
+      }
+      if (format === "pptx") {
+        const blob = await response.blob();
+        if (!blob.type.includes("presentationml.presentation"))
+          throw new Error("No se pudo descargar el PowerPoint. Vuelve a iniciar sesión.");
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = response.headers.get("Content-Disposition")?.match(/filename="([^"]+)"/)?.[1] || "Reporte-Eticsa.pptx";
+        document.body.append(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+        return;
+      }
+      const data = (await response.json()) as Report;
       const { saveWeeklyPdf } = await import("@/lib/weekly-pdf");
       let logo: Uint8Array | undefined;
-      if (clientId === "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519") {
+      if (isEticsa) {
         try {
           const image = await fetch("/client-logos/eticsa-report.png");
           if (image.ok) logo = new Uint8Array(await image.arrayBuffer());
@@ -236,9 +253,9 @@ export default function Portal({
       }
       saveWeeklyPdf(data, clientName, logo);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo generar el PDF.");
+      setError(e instanceof Error ? e.message : "No se pudo generar el reporte.");
     } finally {
-      setPdfBusy(false);
+      setReportBusy(null);
     }
   }
   useEffect(() => {
@@ -404,7 +421,17 @@ export default function Portal({
     !report.periodMode ||
     report.periodMode === "7" ||
     report.periodMode === "30";
-  if(showMobile) return <EticsaMobile clientId={clientId} previewMode={previewMode} isAdmin={isAdmin} pdfBusy={pdfBusy} error={error} download={downloadWeeklyPdf} detail={()=>{setDetailed(true);window.scrollTo(0,0);}} />;
+  function reportButtons(className?: string) {
+    const formats: ("pdf" | "pptx")[] = isEticsa ? ["pptx", "pdf"] : ["pdf"];
+    return formats.map(format => {
+      const name = format === "pptx" ? "PowerPoint" : "PDF";
+      return <button key={format} className={className} onClick={() => downloadReport(format)} disabled={!!reportBusy || !status?.customerId}>
+        <ArrowDownToLine size={16} />
+        {reportBusy === format ? "Preparando " + name + "…" : isEticsa ? "Descargar " + name : "Descargar reporte"}
+      </button>;
+    });
+  }
+  if(showMobile) return <EticsaMobile clientId={clientId} previewMode={previewMode} isAdmin={isAdmin} reportBusy={reportBusy} error={error} download={downloadReport} detail={()=>{setDetailed(true);window.scrollTo(0,0);}} />;
   return (
     <div className="app-shell">
       <aside className={`sidebar ${menu ? "open" : ""}`}>
@@ -449,13 +476,7 @@ export default function Portal({
             <Megaphone size={18} />
             Campañas<span className="nav-count">{report.campaigns.length}</span>
           </button>
-          <button
-            onClick={downloadWeeklyPdf}
-            disabled={pdfBusy || !status?.customerId}
-          >
-            <ArrowDownToLine size={18} />
-            {pdfBusy ? "Preparando PDF…" : "Descargar reporte"}
-          </button>
+          {reportButtons()}
           <button onClick={download}>
             <ArrowDownToLine size={18} />
             Descargar datos CSV
@@ -581,16 +602,7 @@ export default function Portal({
                     : "Vincula tu cuenta de Google Ads y empieza a ver resultados reales."}
               </p>
             </div>
-            {view !== "connection" && (
-              <button
-                className="button secondary export"
-                onClick={downloadWeeklyPdf}
-                disabled={pdfBusy || !status?.customerId}
-              >
-                <ArrowDownToLine size={16} />
-                {pdfBusy ? "Preparando PDF…" : "Descargar reporte"}
-              </button>
-            )}
+            {view !== "connection" && <div className="report-formats">{reportButtons("button secondary")}</div>}
           </div>
           {error && (
             <div className="message error" role="alert">

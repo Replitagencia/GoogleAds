@@ -39,7 +39,7 @@ export default function EticsaMobile({
   clientId,
   previewMode,
   isAdmin,
-  pdfBusy,
+  reportBusy,
   error,
   download,
   detail,
@@ -47,9 +47,9 @@ export default function EticsaMobile({
   clientId: string;
   previewMode: boolean;
   isAdmin: boolean;
-  pdfBusy: boolean;
+  reportBusy: "pdf" | "pptx" | null;
   error: string;
-  download: () => void;
+  download: (format: "pdf" | "pptx") => void;
   detail: () => void;
 }) {
   const [tab, setTab] = useState<Tab>("Resumen");
@@ -182,21 +182,19 @@ export default function EticsaMobile({
       {tab === "Reporte" && (
         <>
           <h1>Informe de Eticsa</h1>
-          <p className={css.period}>Google Ads · PDF</p>
+          <p className={css.period}>Google Ads · PowerPoint y PDF</p>
           <section className={css.note}>
             <h2>Reporte de campañas</h2>
             <p>
               Resultados de los últimos siete días completos e histórico mensual
               de impresiones y clics.
             </p>
-            <button
-              className={css.download}
-              onClick={download}
-              disabled={pdfBusy}
-            >
-              <Download size={17} />
-              {pdfBusy ? "Preparando PDF…" : "Descargar reporte PDF"}
-            </button>
+            {(["pptx", "pdf"] as const).map(format => {
+              const name = format === "pptx" ? "PowerPoint" : "PDF";
+              return <button key={format} className={css.download} onClick={() => download(format)} disabled={!!reportBusy}>
+                <Download size={17} />{reportBusy === format ? "Preparando " + name + "…" : "Descargar " + name}
+              </button>;
+            })}
             {error && <p role="alert">{error}</p>}
           </section>
         </>

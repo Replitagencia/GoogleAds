@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import type { Report } from "./demo";
-import type { Breakdown, Metrics } from "./reporting";
+import { weeklyReportContent } from "./weekly-report";
+import type { Metrics } from "./reporting";
 
 // The executive summary uses seven complete days; optional history uses Google Ads observations.
 export function saveWeeklyPdf(
@@ -8,10 +9,7 @@ export function saveWeeklyPdf(
   clientName: string,
   logo?: Uint8Array,
 ) {
-  if (report.source !== "google" || report.days !== 7 || !report.insights)
-    throw new Error("No hay resultados reales del período disponibles.");
-  const info = report.insights,
-    p = info.period;
+  const { info, p, number, money, date, current, previous, ctr, cpc, terms, oldTerms, termUnavailable, change } = weeklyReportContent(report);
   const pdf = new jsPDF({
     orientation: "landscape",
     unit: "mm",
@@ -20,28 +18,6 @@ export function saveWeeklyPdf(
   const blue: [number, number, number] = [14, 55, 105],
     dark: [number, number, number] = [9, 24, 53],
     green: [number, number, number] = [0, 174, 126];
-  const number = (n: number) =>
-    new Intl.NumberFormat("es-CL", { maximumFractionDigits: 1 }).format(n);
-  const money = (n: number) =>
-    new Intl.NumberFormat("es-CL", {
-      style: "currency",
-      currency: report.currency || "CLP",
-      maximumFractionDigits: report.currency === "CLP" ? 0 : 2,
-    }).format(n);
-  const date = (s: string) =>
-    new Intl.DateTimeFormat("es-CL", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      timeZone: "UTC",
-    }).format(new Date(s + "T12:00:00Z"));
-  const current = `${date(p.start)} al ${date(p.end)}`,
-    previous = `${date(p.previousStart)} al ${date(p.previousEnd)}`;
-  const ctr = (m: Metrics) =>
-    m.impressions
-      ? `${((m.clicks / m.impressions) * 100).toLocaleString("es-CL", { maximumFractionDigits: 2 })} %`
-      : "—";
-  const cpc = (m: Metrics) => (m.clicks ? money(m.cost / m.clicks) : "—");
   function text(
     s: string,
     x: number,
@@ -119,21 +95,6 @@ export function saveWeeklyPdf(
       text(v, xs[i], y, 9, dark, bold ? "bold" : "normal"),
     );
   }
-  function aggregate(terms: Breakdown[]) {
-    const m = new Map<string, Breakdown>();
-    for (const a of terms) {
-      const key = a.label.trim().toLocaleLowerCase("es");
-      const old = m.get(key);
-      if (old) {
-        old.impressions += a.impressions;
-        old.clicks += a.clicks;
-      } else m.set(key, { ...a });
-    }
-    return [...m.values()];
-  }
-  const terms = aggregate(info.terms || []),
-    oldTerms = aggregate(info.previousTerms || []);
-  const termUnavailable = info.unavailable.includes("terms");
   // Cover: a clean rendition of the supplied dark-blue/green report design.
   pdf.setFillColor(...dark);
   pdf.rect(0, 0, 297, 167, "F");
@@ -202,12 +163,6 @@ export function saveWeeklyPdf(
     `${current} · Comparado con ${previous}`,
     2,
   );
-  const change = (v: number, old: number) =>
-    old === 0
-      ? v === 0
-        ? "Sin variación; ambos períodos registran cero."
-        : "Sin porcentaje comparable: el período anterior registró cero."
-      : `${v >= old ? "Aumentó" : "Disminuyó"} ${number(Math.abs(((v - old) / old) * 100))} % frente al período anterior.`;
   row(
     48,
     [

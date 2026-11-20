@@ -11,6 +11,7 @@ import { aggregateCampaignDays } from "@/lib/consolidated-report";
 import { eticsaSummary, latestSharedNote } from "@/lib/eticsa-summary";
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
+import { eticsaPowerPoint } from "@/lib/weekly-powerpoint";
 
 const ETICSA_CLIENT = "c3dd11c2-d156-4b4f-bd10-fa7d3a6ec519";
 const ETICSA_ACCOUNT = "3213724556";
@@ -83,9 +84,9 @@ async function monthlySeries(
         ...(counts.get(month) ?? { impressions: null, clicks: null }),
       };
     });
-    return { ...bounds, status: "available", months };
+    return { ...bounds, status: "available" as const, months };
   } catch {
-    return { ...bounds, status: "unavailable", months: [] };
+    return { ...bounds, status: "unavailable" as const, months: [] };
   }
 }
 
@@ -175,7 +176,7 @@ export async function GET(request: Request) {
       period.previousStart,
       period.previousEnd,
     );
-    return json({
+    const report = {
       source: "google",
       agencyNote: await latestSharedNote(
         clientId,
@@ -213,7 +214,25 @@ export async function GET(request: Request) {
         previousTerms,
         unavailable,
       },
-    });
+    };
+    if (new URL(request.url).searchParams.get("format") === "pptx") {
+      const logo = await readFile("public/client-logos/eticsa-report.png");
+      const bytes = await eticsaPowerPoint(report, logo);
+      return new Response(new Uint8Array(bytes), {
+        headers: {
+          "Content-Type":
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+          "Content-Disposition":
+            'attachment; filename="Reporte-Google-Ads-' +
+            period.start +
+            "-" +
+            period.end +
+            '.pptx"',
+          "Cache-Control": "private, no-store",
+        },
+      });
+    }
+    return json(report);
   } catch (e) {
     if (e instanceof AccessError) return apiError(e);
     return json({ error: errorMessage(e) }, 502);

@@ -97,3 +97,39 @@ test("el PDF de Eticsa agrega una página histórica sin inventar meses sin dato
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("el PowerPoint de Eticsa contiene diapositivas, tablas y gráficos editables", async () => {
+  const { eticsaPowerPoint } = await import("../lib/weekly-powerpoint");
+  const { execFileSync } = await import("node:child_process");
+  const { writeFile } = await import("node:fs/promises");
+  const report = demoReport(7);
+  const logo = await readFile("public/client-logos/eticsa-report.png");
+  await assert.rejects(eticsaPowerPoint(report, logo), /resultados reales/);
+  report.source = "google";
+  report.scopeLabel = "Búsqueda + Pmax";
+  report.monthlyHistory = {
+    status: "available",
+    start: "2025-11-01",
+    end: "2026-11-19",
+    currentMonth: "2026-11",
+    months: Array.from({ length: 13 }, (_, i) => ({
+      month: new Date(Date.UTC(2025, 10 + i, 1)).toISOString().slice(0, 7),
+      impressions: i === 1 ? null : i * 10,
+      clicks: i,
+    })),
+  };
+  const dir = await mkdtemp(path.join(tmpdir(), "eticsa-pptx-"));
+  const ppt = path.join(dir, "reporte.pptx");
+  try {
+    await writeFile(ppt, await eticsaPowerPoint(report, logo));
+    const part = (name: string) =>
+      execFileSync("unzip", ["-p", ppt, name], { encoding: "utf8" });
+    assert.match(part("ppt/slides/slide2.xml"), /<a:tbl>/);
+    assert.match(part("ppt/slides/slide7.xml"), /Sin registros: dic 25/);
+    assert.match(part("ppt/slides/slide7.xml"), /Total: 770/);
+    assert.match(part("ppt/charts/chart1.xml"), /<c:barChart>/);
+    assert.match(part("ppt/charts/chart2.xml"), /nov 26\*/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
